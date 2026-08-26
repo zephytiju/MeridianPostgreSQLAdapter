@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://meridian.storage/contracts/meridian.postgresql.settings.v1.schema.json",
+  "title": "Meridian PostgreSQL adapter settings V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "scopeKeys", "resources", "topology"],
+  "properties": {
+    "formatVersion": {"const": "meridian.postgresql.settings.v1"},
+    "applicationName": {"type": "string", "minLength": 1, "maxLength": 63},
+    "scopeKeys": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/identifier"}
+    },
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expectedStandbys"],
+      "properties": {"expectedStandbys": {"type": "integer", "minimum": 0}}
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/resource"}
+    }
+  },
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[a-z_][a-z0-9_]{0,62}$"},
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "column", "logicalType", "nullable", "mutable"],
+      "allOf": [
+        {
+          "if": {"properties": {"logicalType": {"const": "decimal"}}, "required": ["logicalType"]},
+          "then": {"required": ["precision", "scale"]},
+          "else": {"not": {"anyOf": [{"required": ["precision"]}, {"required": ["scale"]}]}}
+        }
+      ],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "column": {"$ref": "#/$defs/identifier"},
+        "logicalType": {
+          "enum": ["boolean", "bytes", "date", "decimal", "duration", "enum", "float64", "int8", "int16", "int32", "int64", "json", "objectRef", "recordRef", "string", "utcTimestamp", "uuid", "wgs84Point"]
+        },
+        "cardinality": {"enum": ["one", "many"]},
+        "nullable": {"type": "boolean"},
+        "mutable": {"type": "boolean"},
+        "precision": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "scale": {"type": "integer", "minimum": 0, "maximum": 1000}
+      }
+    },
+    "index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "fields", "unique"],
+      "properties": {
+        "name": {"$ref": "#/$defs/identifier"},
+        "kind": {"enum": ["btree", "hash", "full-text", "geospatial", "relation-endpoint", "time-series"]},
+        "fields": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "unique": {"type": "boolean"}
+      }
+    },
+    "relation": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["sourceField", "targetField", "directed", "sourceCollections", "targetCollections"],
+      "properties": {
+        "sourceField": {"type": "string"},
+        "targetField": {"type": "string"},
+        "directed": {"type": "boolean"},
+        "sourceCollections": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "targetCollections": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "table", "profile", "schemaFingerprint", "resourceFingerprint", "fields", "identity", "indexes", "relation"],
+      "properties": {
+        "ref": {"type": ["string", "object"]},
+        "table": {"$ref": "#/$defs/identifier"},
+        "profile": {"enum": ["relational", "document", "key-value", "search", "geospatial", "time-series", "relation", "append-only-evidence"]},
+        "schemaFingerprint": {"$ref": "#/$defs/fingerprint"},
+        "resourceFingerprint": {"$ref": "#/$defs/fingerprint"},
+        "fields": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/field"}},
+        "identity": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "indexes": {"type": "array", "items": {"$ref": "#/$defs/index"}},
+        "relation": {"$ref": "#/$defs/relation"}
+      }
+    }
+  }
+}

@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - run: uv sync --extra test --locked
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run python scripts/verify_contracts.py
+      - run: uv run pytest tests/unit tests/contract tests/packaging
+
+  postgis:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: pg16-postgis34
+            version: 16-postgis-3.4
+            image: postgis/postgis:16-3.4-alpine
+          - engine: pg17-postgis35
+            version: 17-postgis-3.5
+            image: postgis/postgis:17-3.5-alpine
+    services:
+      postgres:
+        image: ${{ matrix.image }}
+        env:
+          POSTGRES_USER: meridian
+          POSTGRES_PASSWORD: meridian
+          POSTGRES_DB: meridian
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meridian -d meridian"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      MERIDIAN_POSTGRESQL_TEST_DSN: postgresql://meridian:meridian@127.0.0.1:5432/meridian
+      MERIDIAN_POSTGRESQL_ENGINE_VERSION: ${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra test --locked
+      - run: uv run pytest -m 'not cluster' --cov --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postgresql-coverage-${{ matrix.engine }}
+          path: coverage.xml
+
+  cluster:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: pg16-postgis34
+            version: 16-postgis-3.4
+            image: postgis/postgis:16-3.4-alpine
+          - engine: pg17-postgis35
+            version: 17-postgis-3.5
+            image: postgis/postgis:17-3.5-alpine
+    env:
+      MERIDIAN_POSTGRESQL_IMAGE: ${{ matrix.image }}
+      MERIDIAN_POSTGRESQL_ENGINE_VERSION: ${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra test --locked
+      - run: ./scripts/run-cluster-conformance.sh
+
+  package:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_DATE_EPOCH: "1787702400"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra test --locked
+      - run: uv build
+      - run: uv run twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meridian-storage-postgresql-dist
+          path: dist/*

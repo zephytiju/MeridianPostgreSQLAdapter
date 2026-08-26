@@ -1,0 +1,62 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+# Deterministic conformance
+
+The default test suite separates pure/unit contract tests from genuine engine
+tests. No PostgreSQL behavior is accepted from mocks alone.
+
+```bash
+uv sync --extra test
+uv run pytest tests/unit tests/contract tests/packaging
+```
+
+For PostgreSQL 16 + PostGIS 3.4:
+
+```bash
+docker run --rm --name meridian-postgis \
+  -e POSTGRES_PASSWORD=meridian \
+  -e POSTGRES_USER=meridian \
+  -e POSTGRES_DB=meridian \
+  -p 55432:5432 postgis/postgis:16-3.4-alpine
+
+MERIDIAN_POSTGRESQL_TEST_DSN='postgresql://meridian:meridian@127.0.0.1:55432/meridian' \
+  uv run pytest -m integration
+```
+
+For PostgreSQL 17 + PostGIS 3.5, use image
+`postgis/postgis:17-3.5-alpine` and set
+`MERIDIAN_POSTGRESQL_ENGINE_VERSION=17-postgis-3.5`. CI runs the complete
+single-primary suite against both advertised version pins.
+
+The integration suite applies the adapter-generated migration plan through the
+explicit migration hook and then verifies types, JSON, CAS races, transactional
+rollback, atomic claims, WGS84 boundary distances, live keysets, bounded
+traversal, logical transfer, advisory-lock idempotence, probes, and physical
+fingerprints.
+
+The same suite exercises the released Semantics facade, including activation
+plan/apply, Registry revision, canonical encoding/decoding, logical transfer,
+and an additive nullable-column upgrade without dropping existing data.
+
+Cluster tests are opt-in because they require one primary and at least two
+streaming standbys. The repository includes a disposable genuine-cluster runner:
+
+```bash
+./scripts/run-cluster-conformance.sh
+```
+
+The CI cluster matrix runs that script with both advertised images. A local
+version override uses `MERIDIAN_POSTGRESQL_IMAGE` together with the matching
+`MERIDIAN_POSTGRESQL_ENGINE_VERSION`.
+
+Alternatively, set `MERIDIAN_POSTGRESQL_CLUSTER_DSN` to the write endpoint and
+`MERIDIAN_POSTGRESQL_CLUSTER_STANDBY_DSNS` to two comma-separated read endpoints,
+then run `pytest -m cluster`. The suite applies the migration on the primary,
+waits for both standbys to replay it, verifies the physical fingerprint, rejects
+a standby as a write endpoint, and fails closed below the configured replica
+minimum. Promotion, endpoint switching, backup creation, and restore remain
+Platform IaC tests; the adapter exposes no authority to perform them.
+
+Release builds pin the build backend and set a fixed `SOURCE_DATE_EPOCH`.
+Independent isolated builds of the same revision must therefore produce
+byte-identical wheel and sdist files; `twine check --strict` validates both.

@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["hatchling==1.30.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "meridian-storage-postgresql"
+version = "1.0.0"
+description = "PostgreSQL and PostGIS adapter for Meridian V1"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Meridian contributors" }]
+keywords = ["meridian", "postgresql", "postgis", "storage", "adapter"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
+]
+dependencies = [
+  "meridian-storage-core==1.0.0",
+  "meridian-storage-semantics==1.0.0",
+  "meridian-storage-query==1.0.0",
+  "psycopg[binary]>=3.2.9,<4",
+  "psycopg-pool>=3.2.6,<4",
+]
+
+[project.optional-dependencies]
+test = [
+  "build>=1.2.2,<2",
+  "mypy>=1.15,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.11,<1",
+  "twine>=7.0,<8",
+]
+
+[project.entry-points."meridian_storage.adapters"]
+postgresql = "meridian_storage.adapters.postgresql:PostgreSQLAdapterFactory"
+
+[project.urls]
+Homepage = "https://github.com/zephytiju/meridian-storage-postgresql"
+Repository = "https://github.com/zephytiju/meridian-storage-postgresql"
+Issues = "https://github.com/zephytiju/meridian-storage-postgresql/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/meridian_storage"]
+include = [
+  "src/meridian_storage/adapters/postgresql/compatibility.json",
+  "src/meridian_storage/adapters/postgresql/py.typed",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "integration: requires a genuine PostgreSQL/PostGIS service",
+  "cluster: requires the opt-in cluster topology fixture",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["meridian_storage.adapters.postgresql"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["meridian_storage.adapters.postgresql"]
