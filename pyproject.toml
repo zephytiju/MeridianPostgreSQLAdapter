@@ -45,9 +45,9 @@ test = [
 postgresql = "meridian_storage.adapters.postgresql:PostgreSQLAdapterFactory"
 
 [project.urls]
-Homepage = "https://github.com/zephytiju/meridian-storage-postgresql"
-Repository = "https://github.com/zephytiju/meridian-storage-postgresql"
-Issues = "https://github.com/zephytiju/meridian-storage-postgresql/issues"
+Homepage = "https://github.com/zephytiju/MeridianPostgreSQLAdapter"
+Repository = "https://github.com/zephytiju/MeridianPostgreSQLAdapter"
+Issues = "https://github.com/zephytiju/MeridianPostgreSQLAdapter/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/meridian_storage"]
