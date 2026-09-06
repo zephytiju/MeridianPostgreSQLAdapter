@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from contextlib import ExitStack
 from copy import deepcopy
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -183,8 +184,23 @@ def facade(postgresql_dsn: str) -> Iterator[Any]:
             cross_binding: bool = False,
             replay_fault: str | None = None,
             result_limit: int | None = None,
+            append_delay: bool = False,
         ) -> Meridian:
             selected = deepcopy(config)
+            if append_delay:
+                with connect(postgresql_dsn) as connection:
+                    connection.execute(
+                        sql.SQL(
+                            "CREATE FUNCTION {}.delay_append() RETURNS trigger LANGUAGE plpgsql "
+                            "AS $$ BEGIN PERFORM pg_sleep(0.2); RETURN NEW; END $$"
+                        ).format(sql.Identifier(namespace))
+                    )
+                    connection.execute(
+                        sql.SQL(
+                            "CREATE TRIGGER delay_append BEFORE INSERT ON {}.outbox "
+                            "FOR EACH ROW EXECUTE FUNCTION {}.delay_append()"
+                        ).format(sql.Identifier(namespace), sql.Identifier(namespace))
+                    )
             if replay_fault is not None:
                 with connect(postgresql_dsn) as connection:
                     table = sql.Identifier(namespace, "__meridian_evidence_replay")
@@ -564,3 +580,21 @@ def test_source_and_audit_stay_provisional_until_outer_commit(facade: Any) -> No
             )
             assert executor.submit(observe).result(timeout=10) == ("before", 0)
         assert executor.submit(observe).result(timeout=10) == ("after", 1)
+
+
+def test_batch_shares_one_deadline_and_rolls_back_replay_claim(facade: Any) -> None:
+    runtime = facade[0](append_delay=True)
+    data = [event(), event(), event()]
+    expression = runtime.catalog("evidence").append(
+        resource="example.outbox", data=data, idempotency_key="deadline-batch"
+    )
+    with (
+        runtime.context(ctx(deadline=datetime.now(UTC) + timedelta(milliseconds=350))),
+        pytest.raises(MeridianError) as raised,
+    ):
+        runtime.execute(expression)
+    assert raised.value.code == "MERIDIAN_DEADLINE_EXCEEDED"
+    assert not query(runtime, ctx())["items"]
+    # A fresh operation can claim the same key after the timed-out batch rolled back.
+    with runtime.context(ctx()):
+        assert len(runtime.execute(expression).data) == len(data)

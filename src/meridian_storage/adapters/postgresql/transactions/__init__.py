@@ -258,6 +258,7 @@ class PostgreSQLAdapterSession:
         table = sql.Identifier(
             self._compiler.settings.physical_schema, "__meridian_evidence_replay"
         )
+        deadline = time.monotonic() + self._operation_timeout_ms / 1000
         # A savepoint also makes a caught batch failure all-or-nothing inside
         # an explicit transaction. The caller still owns the outer rollback.
         with connection.transaction():
@@ -289,7 +290,6 @@ class PostgreSQLAdapterSession:
                         )
                     return previous["result"], {"mutation": "append", "replay": "true"}
             rows = []
-            deadline = time.monotonic() + self._operation_timeout_ms / 1000
             for item in commands:
                 remaining = deadline - time.monotonic()
                 context_remaining = request.context.remaining_seconds()
