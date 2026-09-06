@@ -43,9 +43,11 @@ def operation(
     return Operation(
         catalog=catalog,
         operation_contract=f"meridian.{catalog}.{method}",
-        operation_version="1.0.0",
+        operation_version="2.0.0" if (catalog, method) == ("structured", "put") else "1.0.0",
         resources=resources,
-        input=input_value or {},
+        input=(
+            {"mode": "if_absent", **(input_value or {})} if method == "put" else input_value or {}
+        ),
         read_only=method in {"get", "query", "search", "aggregate", "traverse"},
         idempotent=method not in {"append"},
     )
@@ -274,7 +276,7 @@ def test_dml_validation_and_conditional_paths(settings: object) -> None:
     conditional_put = dml.compile(
         "put",
         PEOPLE,
-        {"data": {"id": people_id, "name": "Ada"}, "expectedVersion": 1},
+        {"data": {"id": people_id, "name": "Ada"}, "mode": "update", "expectedVersion": 1},
         ctx,
     )
     assert conditional_put.conditional
@@ -296,7 +298,7 @@ def test_dml_validation_and_conditional_paths(settings: object) -> None:
     immutable_only = dml.compile(
         "put",
         OUTBOX,
-        {"data": {"id": people_id, "kind": "test", "payload": {"ok": True}}},
+        {"mode": "upsert", "data": {"id": people_id, "kind": "test", "payload": {"ok": True}}},
         ctx,
     )
     assert "__updated_at = t.__updated_at" in immutable_only.statement.command.as_string(None)
@@ -318,7 +320,7 @@ def test_dml_validation_and_conditional_paths(settings: object) -> None:
     )
     for method, resource, input_value, message in invalid:
         with pytest.raises((TypeError, ValueError), match=message):
-            dml.compile(method, resource, input_value, ctx)
+            dml.compile(method, resource, {"mode": "if_absent", **input_value}, ctx)
 
     with pytest.raises(ValueError, match="between 1 and 500"):
         dml.atomic_claim(WORK, where={}, changes={"state": "x"}, limit=0, context=ctx)

@@ -1,0 +1,1206 @@
+{
+  "formatVersion": "meridian.structured.put.conformance.v2",
+  "operationContract": "meridian.structured.put",
+  "operationVersion": "2.0.0",
+  "notes": [
+    "Existence cases are portable expectations for adapter conformance, not an in-memory storage implementation.",
+    "currentVersion 1 is fixture state, not a universal initial version; zero never means create.",
+    "Every case targets one logical Resource and mandatory scope. Existing data-field, update-version, result and error contracts apply."
+  ],
+  "valid": [
+    {
+      "name": "if_absent-None",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent"
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent"
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:7c5df5ee7c76a4a9d7b4d1b070ce5f5015b05c07a4990bd4d0c808498dac3b7b"
+    },
+    {
+      "name": "update-None",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update"
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update"
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:27e066ea606fb57435f0c1f29b8611cad4a11a3ac3581d5d41dbd4fa399e844b"
+    },
+    {
+      "name": "update-0",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 0
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 0
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:1c73ce91dfea02b4045e259be37fc85c1b948e6267a4489969111b5d75347b04"
+    },
+    {
+      "name": "update-1",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 1
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 1
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:c7e2b515d935129330e014394e8a468c23cda9195be0da5a3f91e7e2593b9956"
+    },
+    {
+      "name": "update-2",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 2
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 2
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:441ac5ff42a774a87a21e5d73905371674772efa0587c850ce668a2caed81be2"
+    },
+    {
+      "name": "update-opaque-v1",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": "opaque-v1"
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": "opaque-v1"
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:b3dfaf5ccce81661b5fbf3153d276bd3b9d7dd6a89988bf78ae2f2b0de43886b"
+    },
+    {
+      "name": "upsert-None",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert"
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert"
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:28bed05d4885530e7815bd4e7de4a9587e0a1819413d5aee8d8c8673d2d84196"
+    },
+    {
+      "name": "upsert-0",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 0
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 0
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:ec1cf0747e3096870c1d39e1d806a3ef4da67cc5014bf7b0620b7ea529a614f8"
+    },
+    {
+      "name": "upsert-1",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 1
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 1
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:a4777d5f40f170d533d21e70d8da7489c73deb0e9276a1fa3cd6ea284c1852de"
+    },
+    {
+      "name": "upsert-2",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 2
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 2
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:b916bc51e530d1282f3b5fb47c466f81e68240390b489f3932a0a786cfb4f07b"
+    },
+    {
+      "name": "upsert-opaque-v1",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": "opaque-v1"
+        }
+      },
+      "operation": {
+        "formatVersion": "meridian-operation.v1",
+        "catalog": "structured",
+        "operationContract": "meridian.structured.put",
+        "operationVersion": "2.0.0",
+        "resources": [
+          {
+            "catalog": "structured",
+            "namespace": "example",
+            "name": "customers"
+          }
+        ],
+        "input": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": "opaque-v1"
+        },
+        "requirements": [
+          {
+            "operationContract": "meridian.structured.put",
+            "operationVersion": "2.0.0",
+            "guarantees": [],
+            "minimumLimits": {}
+          }
+        ],
+        "readOnly": false,
+        "idempotent": true
+      },
+      "requestFingerprint": "sha256:c9bd694f0314976caaa24ef09fdfb0141c7fa292a3fe033f9eeae468093aedc9"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "invalid-0",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          }
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-1",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": ""
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-2",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": null
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-3",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": false
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-4",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": 0
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-5",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": []
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-6",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": {}
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-7",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "replace"
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-8",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "UPDATE"
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "expression.arguments"
+    },
+    {
+      "name": "invalid-9",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent",
+          "expectedVersion": 0
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-10",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent",
+          "expectedVersion": 1
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-11",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent",
+          "expectedVersion": "v1"
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-12",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent",
+          "expectedVersion": false
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-13",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent",
+          "expectedVersion": {}
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-14",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "if_absent",
+          "expectedVersion": []
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-15",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": false
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-16",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": true
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-17",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": 1.5
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-18",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": []
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-19",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "update",
+          "expectedVersion": {}
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-20",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": false
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-21",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": true
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-22",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": 1.5
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-23",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": []
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    },
+    {
+      "name": "invalid-24",
+      "expression": {
+        "formatVersion": "meridian-expression.v1",
+        "catalog": "structured",
+        "method": "put",
+        "arguments": {
+          "resource": "example.customers",
+          "data": {
+            "id": "1",
+            "name": "Ada"
+          },
+          "mode": "upsert",
+          "expectedVersion": {}
+        }
+      },
+      "errorType": "InvalidDefinition",
+      "errorCode": "MERIDIAN_SEMANTICS_INVALID_DEFINITION",
+      "requirement": "operation.precondition"
+    }
+  ],
+  "existenceCases": [
+    {
+      "name": "if_absent-absent-None",
+      "mode": "if_absent",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": null,
+      "expectedOutcome": "create"
+    },
+    {
+      "name": "if_absent-present-None",
+      "mode": "if_absent",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": null,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "update-absent-None",
+      "mode": "update",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": null,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "update-absent-0",
+      "mode": "update",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": 0,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "update-absent-1",
+      "mode": "update",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": 1,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "update-absent-2",
+      "mode": "update",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": 2,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "update-present-None",
+      "mode": "update",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": null,
+      "expectedOutcome": "update"
+    },
+    {
+      "name": "update-present-0",
+      "mode": "update",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": 0,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "update-present-1",
+      "mode": "update",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": 1,
+      "expectedOutcome": "update"
+    },
+    {
+      "name": "update-present-2",
+      "mode": "update",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": 2,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "upsert-absent-None",
+      "mode": "upsert",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": null,
+      "expectedOutcome": "create"
+    },
+    {
+      "name": "upsert-absent-0",
+      "mode": "upsert",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": 0,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "upsert-absent-1",
+      "mode": "upsert",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": 1,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "upsert-absent-2",
+      "mode": "upsert",
+      "recordPresent": false,
+      "currentVersion": null,
+      "expectedVersion": 2,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "upsert-present-None",
+      "mode": "upsert",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": null,
+      "expectedOutcome": "update"
+    },
+    {
+      "name": "upsert-present-0",
+      "mode": "upsert",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": 0,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    },
+    {
+      "name": "upsert-present-1",
+      "mode": "upsert",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": 1,
+      "expectedOutcome": "update"
+    },
+    {
+      "name": "upsert-present-2",
+      "mode": "upsert",
+      "recordPresent": true,
+      "currentVersion": 1,
+      "expectedVersion": 2,
+      "expectedOutcome": "conflict",
+      "errorType": "ConflictError"
+    }
+  ]
+}

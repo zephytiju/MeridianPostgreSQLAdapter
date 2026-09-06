@@ -65,11 +65,13 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
-      - run: uv run pytest -m 'not cluster' --cov --cov-report=xml
+      - run: uv run pytest -m 'not cluster' --cov --cov-report=xml --junitxml=postgresql-tests.xml
       - uses: actions/upload-artifact@v4
         with:
           name: postgresql-coverage-${{ matrix.engine }}
-          path: coverage.xml
+          path: |
+            coverage.xml
+            postgresql-tests.xml
 
   cluster:
     runs-on: ubuntu-latest

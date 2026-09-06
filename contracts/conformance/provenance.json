@@ -1,0 +1,8 @@
+{
+  "package": "meridian-storage-semantics",
+  "version": "2.0.0",
+  "sdistUrl": "https://files.pythonhosted.org/packages/b1/5e/9cbf501bc2ee9e4efe64d0fd2e8b13020364932b20113cab63dcf9b323d6/meridian_storage_semantics-2.0.0.tar.gz",
+  "sdistSha256": "a62cd1255e04a030847afa1e6553434dfe5efdf33dd7878401141b1c5e80c19b",
+  "fixturePath": "meridian_storage_semantics-2.0.0/contracts/conformance/structured-put.v2.json",
+  "fixtureSha256": "c3c118b7c76027eb7e47abfc986fb706bfa98293c14db62ca26751985f4b9524"
+}

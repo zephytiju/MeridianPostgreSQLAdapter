@@ -123,12 +123,13 @@ def test_relation_endpoints_are_registry_pinned(settings: PostgreSQLSettings) ->
         "put",
         ResourceRef.parse("structured:example.friendships"),
         {
+            "mode": "if_absent",
             "data": {
                 "id": "00000000-0000-0000-0000-000000000010",
                 "source": endpoint,
                 "target": endpoint,
                 "label": "friend",
-            }
+            },
         },
         context,
     )
@@ -141,12 +142,13 @@ def test_relation_endpoints_are_registry_pinned(settings: PostgreSQLSettings) ->
             "put",
             ResourceRef.parse("structured:example.friendships"),
             {
+                "mode": "if_absent",
                 "data": {
                     "id": "00000000-0000-0000-0000-000000000011",
                     "source": invalid,
                     "target": endpoint,
                     "label": "friend",
-                }
+                },
             },
             context,
         )
