@@ -212,7 +212,8 @@ and event-id order. Independent identities may run concurrently. Quarantine
 blocks later work for that identity and is never skipped automatically.
 
 Claims lock a bounded batch with `FOR UPDATE SKIP LOCKED` and persist owner,
-acquisition, expiry and attempt before returning. Expired claims become eligible
+acquisition, expiry and attempt before returning. Concurrent activity can produce
+a short batch; subsequent calls retain the remaining work. Expired claims become eligible
 for reclaim. Release persists retry/quarantine with a redacted failure category;
 exception messages and payloads are not stored. Completion checks exact source
 version and current non-expired ownership, then advances the checkpoint by CAS

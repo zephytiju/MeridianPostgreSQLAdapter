@@ -355,7 +355,20 @@ def test_real_concurrent_claimers_and_completers(durable: Any) -> None:
         return claim(port, str(n), limit=8)
 
     with ThreadPoolExecutor(max_workers=4) as executor:
-        records = [r for batch in executor.map(worker, range(4)) for r in batch]
+        batches = list(executor.map(worker, range(4)))
+    assert all(len(batch) <= 8 for batch in batches)
+    records = [r for batch in batches for r in batch]
+    assert len(records) == len({r.data.event_id for r in records})
+    # SKIP LOCKED snapshots can select a row whose competing claim commits
+    # before the row lock is acquired. The conditional state write rejects it
+    # and may return a short batch. Subsequent calls must retain all remaining
+    # intents, while never returning an already live lease or a later version.
+    for _ in range(3):
+        remaining = claim(durable.port(), "drain", limit=8)
+        assert len(remaining) <= 8
+        records.extend(remaining)
+        if not remaining:
+            break
     ids = [r.data.event_id for r in records]
     assert len(ids) == len(set(ids)) == 24
     assert all(r.data.source_version == 1 for r in records)
