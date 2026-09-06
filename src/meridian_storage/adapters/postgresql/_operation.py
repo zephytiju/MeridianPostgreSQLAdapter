@@ -30,7 +30,7 @@ from meridian_storage.spi.adapters import ExecutionRequest
 
 from ._settings import PostgreSQLSettings
 from .query import PostgreSQLQueryTranslator
-from .query.dml import DMLCommand, DMLCompiler
+from .query.dml import AppendBatchCommand, DMLCommand, DMLCompiler
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,7 +39,7 @@ class QueryCommand:
     translator: PostgreSQLQueryTranslator
 
 
-type AdapterCommand = DMLCommand | QueryCommand
+type AdapterCommand = AppendBatchCommand | DMLCommand | QueryCommand
 
 
 class OperationCompiler:
@@ -104,6 +104,7 @@ class OperationCompiler:
                 cast(Mapping[str, object], operation.input),
                 request.context,
             )
+        self.dml._scope_values(request.context)
         query_operation = self._query_operation(request, method)
         if set(query_operation.resources) != set(operation.resources):
             raise ValueError("query plan Resources differ from the enclosing Operation")

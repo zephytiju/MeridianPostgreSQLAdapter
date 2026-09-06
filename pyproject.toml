@@ -33,6 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
+  "meridian-storage-evidence==1.0.1",
   "build>=1.2.2,<2",
   "mypy>=1.15,<2",
   "pytest>=8.3,<9",

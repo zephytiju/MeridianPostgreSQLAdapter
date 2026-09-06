@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any, cast
 
 from meridian_storage.query.adapter import (
@@ -482,7 +483,7 @@ class PostgreSQLQueryTranslator:
                 "cursorFields": list(cursor_fields),
                 "internalColumns": list(cursor_fields),
                 "cursorContext": {
-                    "planFingerprint": context.plan_fingerprint,
+                    "planFingerprint": self._cursor_plan_fingerprint(operation),
                     "schemaFingerprints": dict(context.schema_fingerprints),
                     "registryFingerprint": context.registry_fingerprint,
                     "scopeFingerprint": context.scope_fingerprint,
@@ -610,6 +611,16 @@ class PostgreSQLQueryTranslator:
                 )
         return tuple(result)
 
+    @staticmethod
+    def _cursor_plan_fingerprint(operation: QueryOperation) -> str:
+        # Continuation tokens and a shrinking per-attempt deadline are not query
+        # semantics. Keep every filter, order, projection and Resource in the pin.
+        return replace(
+            operation,
+            page=replace(operation.page, cursor=None),
+            budget=replace(operation.budget, deadline_ms=30_000),
+        ).fingerprint
+
     def _keyset(
         self,
         operation: QueryOperation,
@@ -620,13 +631,16 @@ class PostgreSQLQueryTranslator:
             raise ValueError("cursor pagination requires an Adapter-owned CursorSigner")
         payload = self._cursor_signer.verify(operation.page.cursor)
         if (
-            dict(payload.schema_fingerprints) != dict(context.schema_fingerprints)
+            payload.plan_fingerprint != self._cursor_plan_fingerprint(operation)
+            or dict(payload.schema_fingerprints) != dict(context.schema_fingerprints)
             or payload.registry_fingerprint != context.registry_fingerprint
             or payload.scope_fingerprint != context.scope_fingerprint
             or payload.page_size != operation.page.size
             or len(payload.sort_tuple) != len(order)
         ):
-            raise ValueError("cursor does not match the current Registry, Schema, scope, or order")
+            raise ValueError(
+                "cursor does not match the current plan, Registry, Schema, scope, or order"
+            )
         branches: list[BoundStatement] = []
         for index, ((expression, direction, nulls), value) in enumerate(
             zip(order, payload.sort_tuple, strict=True)

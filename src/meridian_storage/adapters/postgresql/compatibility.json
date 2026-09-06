@@ -24,5 +24,8 @@
       "16-postgis-3.4",
       "17-postgis-3.5"
     ]
+  },
+  "testedCatalogs": {
+    "meridian-storage-evidence": "1.0.1"
   }
 }

@@ -591,6 +591,19 @@ wheels = [
 ]
 
 [[package]]
+name = "meridian-storage-evidence"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "meridian-storage-core" },
+    { name = "meridian-storage-semantics" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/94/68/ea1c53d6b1ec90e5d05ac0fc21e77519102ea8fc54d7b8f055be532fbc4b/meridian_storage_evidence-1.0.1.tar.gz", hash = "sha256:2438ef0fdf34a9f7712c1c3649235d05d4911314d3c5e20a560cd2f8a0399d22", size = 60345, upload-time = "2026-09-06T03:17:57.166Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c3/7b/42e857505a89f6bc5b20bba6a824ca0831cc86653699d174570b9bb23aa9/meridian_storage_evidence-1.0.1-py3-none-any.whl", hash = "sha256:2fa9b5bb730a535432362a105a552e6c59b4da73521cde5bfbc477bbc32c2276", size = 55277, upload-time = "2026-09-06T03:17:55.893Z" },
+]
+
+[[package]]
 name = "meridian-storage-postgresql"
 version = "2.0.0"
 source = { editable = "." }
@@ -605,6 +618,7 @@ dependencies = [
 [package.optional-dependencies]
 test = [
     { name = "build" },
+    { name = "meridian-storage-evidence" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -616,6 +630,7 @@ test = [
 requires-dist = [
     { name = "build", marker = "extra == 'test'", specifier = ">=1.2.2,<2" },
     { name = "meridian-storage-core", specifier = "==1.0.1" },
+    { name = "meridian-storage-evidence", marker = "extra == 'test'", specifier = "==1.0.1" },
     { name = "meridian-storage-query", specifier = "==1.0.2" },
     { name = "meridian-storage-semantics", specifier = "==2.0.0" },
     { name = "mypy", marker = "extra == 'test'", specifier = ">=1.15,<2" },

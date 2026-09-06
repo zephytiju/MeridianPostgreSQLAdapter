@@ -16,15 +16,17 @@ from meridian_storage.errors import (
     TransactionError,
     ValidationError,
 )
+from meridian_storage.semantics import sha256_fingerprint
 from meridian_storage.spi.adapters import ExecutionRequest, ExecutionResult
 from psycopg import Connection, sql
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from .._errors import map_postgresql_error
 from .._operation import OperationCompiler, QueryCommand
 from ..query._values import decode_query_value
-from ..query.dml import DMLCommand, jsonable
+from ..query.dml import AppendBatchCommand, DMLCommand, jsonable
 
 
 class _Pool(Protocol):
@@ -165,6 +167,8 @@ class PostgreSQLAdapterSession:
             )
             if isinstance(command, QueryCommand):
                 data, provenance = self._execute_query(connection, command, request)
+            elif isinstance(command, AppendBatchCommand) or command.method == "append":
+                data, provenance = self._execute_append(connection, command, request)
             else:
                 data, provenance = self._execute_dml(connection, command, request)
             encoded = json.dumps(
@@ -210,6 +214,99 @@ class PostgreSQLAdapterSession:
                 request_id=request.request_id,
                 execution_id=request.execution_id,
             ) from exc
+
+    def _execute_append(
+        self,
+        connection: Connection[Any],
+        command: DMLCommand | AppendBatchCommand,
+        request: ExecutionRequest,
+    ) -> tuple[Any, dict[str, str]]:
+        if request.operation.input.get("requireAtomic") is True and not self._transactional:
+            raise TransactionError(
+                ErrorCode.TRANSACTION_STATE,
+                "required Evidence append must join an explicit Binding transaction",
+            )
+        commands = command.commands if isinstance(command, AppendBatchCommand) else (command,)
+        key = request.operation.input.get("idempotencyKey") or request.context.idempotency_key
+        if key is None and request.operation.idempotent:
+            raw = request.operation.input.get("data")
+            records = (raw,) if isinstance(raw, Mapping) else raw
+            if isinstance(records, (tuple, list)) and records:
+                identities = [
+                    {name: item[name] for name in ("evidenceId", "checkpointKey") if name in item}
+                    for item in records
+                    if isinstance(item, Mapping)
+                ]
+                if len(identities) == len(records) and all(identities):
+                    key = {"recordIdentities": identities}
+        replay_key = (
+            None
+            if key is None
+            else sha256_fingerprint(
+                {
+                    "binding": request.binding_id,
+                    "principal": request.context.principal_ref,
+                    "tenant": request.context.tenant,
+                    "scope": dict(request.context.scope),
+                    "resource": commands[0].layout.ref.canonical,
+                    "contract": request.operation.operation_contract,
+                    "key": key,
+                }
+            )
+        )
+        table = sql.Identifier(
+            self._compiler.settings.physical_schema, "__meridian_evidence_replay"
+        )
+        # A savepoint also makes a caught batch failure all-or-nothing inside
+        # an explicit transaction. The caller still owns the outer rollback.
+        with connection.transaction():
+            if replay_key is not None:
+                claimed = connection.execute(
+                    sql.SQL(
+                        "INSERT INTO {} (replay_key, request_fingerprint) VALUES (%s, %s) "
+                        "ON CONFLICT DO NOTHING RETURNING replay_key"
+                    ).format(table),
+                    (replay_key, request.operation.request_fingerprint),
+                ).fetchone()
+                if claimed is None:
+                    with connection.cursor(row_factory=dict_row) as cursor:
+                        cursor.execute(
+                            sql.SQL(
+                                "SELECT request_fingerprint, result FROM {} WHERE replay_key = %s"
+                            ).format(table),
+                            (replay_key,),
+                        )
+                        previous = cursor.fetchone()
+                    if (
+                        previous is None
+                        or previous["result"] is None
+                        or previous["request_fingerprint"] != request.operation.request_fingerprint
+                    ):
+                        raise ConflictError(
+                            ErrorCode.IDEMPOTENCY_CONFLICT,
+                            "Evidence idempotency key has a different request fingerprint",
+                        )
+                    return previous["result"], {"mutation": "append", "replay": "true"}
+            rows = [self._execute_dml(connection, item, request)[0] for item in commands]
+            data = rows if isinstance(command, AppendBatchCommand) else rows[0]
+            if (
+                len(
+                    json.dumps(
+                        data, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+                    ).encode("utf-8")
+                )
+                > self._max_result_bytes
+            ):
+                raise ValidationError(
+                    ErrorCode.OPERATION_RESULT_LIMIT,
+                    "PostgreSQL result exceeds the configured byte limit",
+                )
+            if replay_key is not None:
+                connection.execute(
+                    sql.SQL("UPDATE {} SET result = %s WHERE replay_key = %s").format(table),
+                    (Jsonb(data), replay_key),
+                )
+            return data, {"mutation": "append"}
 
     def _execute_query(
         self,

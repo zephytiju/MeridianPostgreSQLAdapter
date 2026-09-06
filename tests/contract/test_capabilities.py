@@ -54,9 +54,7 @@ def test_query_capability_satisfies_distance_requirement() -> None:
 
 def test_checked_in_manifest_fingerprints_match_executable_contracts() -> None:
     root = Path(__file__).resolve().parents[2]
-    ledger = json.loads(
-        (root / "contracts/adapter-capability/fingerprints.v1.json").read_text()
-    )
+    ledger = json.loads((root / "contracts/adapter-capability/fingerprints.v1.json").read_text())
     assert ledger["adapterDescriptorFingerprint"] == DESCRIPTOR.fingerprint
     assert ledger["queryCapabilityFingerprint"] == QUERY_CAPABILITIES.fingerprint
     assert ledger["manifests"] == [
@@ -68,3 +66,22 @@ def test_checked_in_manifest_fingerprints_match_executable_contracts() -> None:
         for profile, versions in DESCRIPTOR.supported_engine_versions.items()
         for version in versions
     ]
+
+
+def test_released_evidence_requirements_are_satisfied_without_aliases() -> None:
+    from meridian_storage.evidence.catalogs import EvidenceCatalogProvider
+    from meridian_storage.spi.capabilities import capability_violations
+
+    provider = EvidenceCatalogProvider()
+    evidence = provider.create_surface()
+    selected = manifest("postgresql-postgis-local-single-primary", "16-postgis-3.4")
+    for expression, guarantee in (
+        (evidence.query(resource="example.outbox"), "scope-isolation"),
+        (
+            evidence.append(resource="example.outbox", data={"kind": "test"}, require_atomic=True),
+            "atomic-evidence",
+        ),
+    ):
+        normalized = provider.normalize(expression)
+        assert any(guarantee in req.guarantees for req in normalized.requirements)
+        assert capability_violations(selected, normalized.requirements) == ()
