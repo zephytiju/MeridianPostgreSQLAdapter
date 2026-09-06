@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Mapping
 from threading import RLock
 from typing import Any, Protocol, cast
@@ -287,7 +288,22 @@ class PostgreSQLAdapterSession:
                             "Evidence idempotency key has a different request fingerprint",
                         )
                     return previous["result"], {"mutation": "append", "replay": "true"}
-            rows = [self._execute_dml(connection, item, request)[0] for item in commands]
+            rows = []
+            deadline = time.monotonic() + self._operation_timeout_ms / 1000
+            for item in commands:
+                remaining = deadline - time.monotonic()
+                context_remaining = request.context.remaining_seconds()
+                if context_remaining is not None:
+                    remaining = min(remaining, context_remaining)
+                if remaining <= 0:
+                    raise MeridianTimeoutError(
+                        ErrorCode.DEADLINE_EXCEEDED, "Evidence append deadline exceeded"
+                    )
+                connection.execute(
+                    "SELECT set_config('statement_timeout', %s, true)",
+                    (f"{max(1, int(remaining * 1000))}ms",),
+                )
+                rows.append(self._execute_dml(connection, item, request)[0])
             data = rows if isinstance(command, AppendBatchCommand) else rows[0]
             if (
                 len(
