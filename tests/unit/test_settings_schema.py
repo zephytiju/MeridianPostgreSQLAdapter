@@ -129,3 +129,11 @@ def test_factory_rejects_unadvertised_engine_version() -> None:
     )
     with pytest.raises(CompatibilityError, match="unsupported PostgreSQL/PostGIS Engine version"):
         PostgreSQLAdapterFactory().create(context)
+
+
+def test_replay_table_name_is_reserved_for_adapter_storage() -> None:
+    raw = sample_settings_mapping()
+    raw["resources"][0]["table"] = "__meridian_evidence_replay"
+    binding, _, _ = make_binding("host=localhost dbname=test")
+    with pytest.raises(ValueError, match="reserved"):
+        PostgreSQLSettings.from_binding(replace(binding, settings=raw))

@@ -129,6 +129,8 @@ class SchemaCompiler:
             self._metadata_table(),
             self._migration_table(),
         ]
+        if any(layout.ref.catalog == "evidence" for layout in self.settings.resources.values()):
+            statements.append(self._evidence_replay_table())
         for layout in self.settings.resources.values():
             statements.extend(self._resource(layout))
         canonical = [statement.command.as_string(None) for statement in statements]
@@ -184,6 +186,18 @@ class SchemaCompiler:
                 "applied_at timestamp with time zone NOT NULL DEFAULT clock_timestamp()"
                 ")"
             ).format(ident(self.settings.physical_schema, "__meridian_migrations"))
+        )
+
+    def _evidence_replay_table(self) -> BoundStatement:
+        # Deployment migration owns this table; runtime startup never creates it.
+        return BoundStatement(
+            sql.SQL(
+                "CREATE TABLE IF NOT EXISTS {} ("
+                "replay_key text PRIMARY KEY, "
+                "request_fingerprint text NOT NULL, "
+                "result jsonb"
+                ")"
+            ).format(ident(self.settings.physical_schema, "__meridian_evidence_replay"))
         )
 
     def _resource(self, layout: ResourceLayout) -> list[BoundStatement]:

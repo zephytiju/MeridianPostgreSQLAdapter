@@ -77,9 +77,11 @@ DESCRIPTOR = AdapterDescriptor(
             operation_versions=("1.0.0",),
             guarantees=(
                 "append-only",
+                "atomic-evidence",
                 "bound-parameters",
                 "read-committed",
                 "scope-injected",
+                "scope-isolation",
                 "transactional-with-structured",
             ),
             limits={"maxPageSize": 500},
@@ -89,7 +91,12 @@ DESCRIPTOR = AdapterDescriptor(
         OperationCapability(
             operation_contract="meridian.evidence.query",
             operation_versions=("1.0.0",),
-            guarantees=("bound-parameters", "scope-injected", "strong-consistency"),
+            guarantees=(
+                "bound-parameters",
+                "scope-injected",
+                "scope-isolation",
+                "strong-consistency",
+            ),
             limits={"maxPageSize": 500},
             cursor_behavior="signed-live-keyset",
             migration_behavior="platform-iac-hook",

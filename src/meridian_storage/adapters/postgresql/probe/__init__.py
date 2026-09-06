@@ -221,10 +221,7 @@ class ProbeService:
 
         expected_columns: list[tuple[str, str, bool, str]] = [
             ("__tenant", "text", True, ""),
-            *(
-                (f"__scope_{key}", "text", True, "")
-                for key in self.settings.scope_keys
-            ),
+            *((f"__scope_{key}", "text", True, "") for key in self.settings.scope_keys),
             *(
                 (
                     field.column,
@@ -249,13 +246,13 @@ class ProbeService:
             )
         observed_columns = sorted(
             [
-            (
-                str(row["name"]),
-                str(row["type"]),
-                bool(row["not_null"]),
-                str(row["generated"]),
-            )
-            for row in columns
+                (
+                    str(row["name"]),
+                    str(row["type"]),
+                    bool(row["not_null"]),
+                    str(row["generated"]),
+                )
+                for row in columns
             ]
         )
         expected_columns.sort()
@@ -289,6 +286,8 @@ class ProbeService:
         *,
         privileges: Iterable[str] = ("SELECT", "INSERT", "UPDATE", "DELETE"),
     ) -> None:
+        if any(layout.ref.catalog == "evidence" for layout in self.settings.resources.values()):
+            self._verify_evidence_replay(connection)
         for layout in self.settings.resources.values():
             qualified = f"{self.settings.physical_schema}.{layout.table}"
             for privilege in privileges:
@@ -300,6 +299,39 @@ class ProbeService:
                     raise RuntimeError(
                         f"runtime identity lacks {privilege} on pinned Resource {layout.ref}"
                     )
+
+    def _verify_evidence_replay(self, connection: Connection[Any]) -> None:
+        qualified = f"{self.settings.physical_schema}.__meridian_evidence_replay"
+        with connection.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(
+                "SELECT a.attname AS name, format_type(a.atttypid, a.atttypmod) AS type, "
+                "a.attnotnull AS not_null FROM pg_attribute a "
+                "WHERE a.attrelid = to_regclass(%s) AND a.attnum > 0 AND NOT a.attisdropped "
+                "ORDER BY a.attnum",
+                (qualified,),
+            )
+            columns = [(r["name"], r["type"], r["not_null"]) for r in cursor.fetchall()]
+            if columns != [
+                ("replay_key", "text", True),
+                ("request_fingerprint", "text", True),
+                ("result", "jsonb", False),
+            ]:
+                raise RuntimeError("Evidence replay storage requires an explicit migration")
+            cursor.execute(
+                "SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint "
+                "WHERE conrelid = to_regclass(%s) AND contype = 'p'",
+                (qualified,),
+            )
+            primary = cursor.fetchone()
+            if not primary or primary["definition"] != "PRIMARY KEY (replay_key)":
+                raise RuntimeError("Evidence replay storage requires its unique replay key")
+            for privilege in ("SELECT", "INSERT", "UPDATE"):
+                cursor.execute(
+                    "SELECT has_table_privilege(%s, %s) AS allowed", (qualified, privilege)
+                )
+                row = cursor.fetchone()
+                if not row or not row["allowed"]:
+                    raise RuntimeError("runtime identity lacks Evidence replay storage privileges")
 
     def _expected_versions(self) -> tuple[str, str]:
         postgresql, postgis = self.engine_version.split("-postgis-", 1)

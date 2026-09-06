@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from meridian_storage.context import OperationContext
@@ -27,6 +27,11 @@ class DMLCommand:
     conditional: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class AppendBatchCommand:
+    commands: tuple[DMLCommand, ...]
+
+
 class DMLCompiler:
     def __init__(self, settings: PostgreSQLSettings) -> None:
         self.settings = settings
@@ -37,7 +42,7 @@ class DMLCompiler:
         resource: ResourceRef,
         input_value: Mapping[str, object],
         context: OperationContext,
-    ) -> DMLCommand:
+    ) -> DMLCommand | AppendBatchCommand:
         layout = self.settings.layout(resource)
         if method == "put":
             return self._put(layout, input_value, context)
@@ -48,6 +53,15 @@ class DMLCompiler:
         if method == "delete":
             return self._delete(layout, input_value, context)
         if method == "append":
+            data = input_value.get("data", input_value.get("event"))
+            if isinstance(data, Sequence) and not isinstance(data, (str, bytes, bytearray)):
+                if not 1 <= len(data) <= 10_000:
+                    raise ValueError("append batch must contain between 1 and 10000 records")
+                # Compile every row before executing any SQL. Each mapping may omit
+                # different nullable fields; array order remains result order.
+                return AppendBatchCommand(
+                    tuple(self._append(layout, {"data": item}, context) for item in data)
+                )
             return self._append(layout, input_value, context)
         raise ValueError(f"DML compiler does not implement {method!r}")
 
@@ -484,4 +498,4 @@ class DMLCompiler:
                 )
 
 
-__all__ = ["DMLCommand", "DMLCompiler", "jsonable"]
+__all__ = ["AppendBatchCommand", "DMLCommand", "DMLCompiler", "jsonable"]

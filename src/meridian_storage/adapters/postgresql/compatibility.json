@@ -1,7 +1,7 @@
 {
   "formatVersion": "meridian.postgresql.compatibility.v1",
   "adapterId": "postgresql",
-  "packageVersion": "2.0.0",
+  "packageVersion": "2.0.1",
   "adapterContract": "1.0.0",
   "dependencies": {
     "meridian-storage-core": "1.0.1",
@@ -24,5 +24,8 @@
       "16-postgis-3.4",
       "17-postgis-3.5"
     ]
+  },
+  "testedCatalogs": {
+    "meridian-storage-evidence": "1.0.1"
   }
 }

@@ -44,7 +44,9 @@ _LOGICAL_TYPES = frozenset(
 _STRUCTURED_PROFILES = frozenset(
     {"relational", "document", "key-value", "search", "geospatial", "time-series", "relation"}
 )
-_RESERVED_TABLES = frozenset({"__meridian_migrations", "__meridian_resources"})
+_RESERVED_TABLES = frozenset(
+    {"__meridian_migrations", "__meridian_resources", "__meridian_evidence_replay"}
+)
 _RESERVED_COLUMNS = frozenset(
     {
         "__tenant",
