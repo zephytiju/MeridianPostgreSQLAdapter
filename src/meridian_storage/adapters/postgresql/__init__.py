@@ -5,6 +5,7 @@ from ._runtime import PostgreSQLAdapterFactory, PostgreSQLAdapterRuntime
 from ._version import __version__
 from .descriptor import DESCRIPTOR, QUERY_CAPABILITIES
 from .migration import LogicalTransfer, MigrationExecutor, RecoveryHook
+from .projection import PostgreSQLOutbox
 from .query import PostgreSQLQueryTranslator
 from .query.dml import DMLCompiler
 from .schema import MigrationPlan, SchemaCompiler
@@ -19,6 +20,7 @@ __all__ = [
     "MigrationPlan",
     "PostgreSQLAdapterFactory",
     "PostgreSQLAdapterRuntime",
+    "PostgreSQLOutbox",
     "PostgreSQLQueryTranslator",
     "PostgreSQLSemanticsAdapter",
     "RecoveryHook",

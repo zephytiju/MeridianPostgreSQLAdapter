@@ -19,6 +19,7 @@ from psycopg.rows import dict_row
 
 from .._settings import PostgreSQLSettings, ResourceLayout
 from ..descriptor import manifest
+from ..projection._storage import is_outbox, verify_storage
 from ..query._sql import ident
 from ..schema import _sql_type
 
@@ -288,6 +289,8 @@ class ProbeService:
     ) -> None:
         if any(layout.ref.catalog == "evidence" for layout in self.settings.resources.values()):
             self._verify_evidence_replay(connection)
+        if any(is_outbox(layout) for layout in self.settings.resources.values()):
+            verify_storage(connection, self.settings.physical_schema)
         for layout in self.settings.resources.values():
             qualified = f"{self.settings.physical_schema}.{layout.table}"
             for privilege in privileges:

@@ -42,6 +42,7 @@ from .transactions import PostgreSQLAdapterSession
 
 _DEPENDENCY_PINS = {
     "meridian-storage-core": "1.0.1",
+    "meridian-storage-projection": "1.0.2",
     "meridian-storage-query": "1.0.2",
     "meridian-storage-semantics": "2.0.0",
 }
