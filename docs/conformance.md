@@ -76,3 +76,26 @@ immutable-only rows, original-result replay after a later mutation, mode-key
 conflict, and unsupported contract rejection before mutation. The suite uses
 a disposable migration-owned namespace and requires authenticated physical
 fingerprint verification before Core startup.
+
+## Durable outbox
+
+`tests/integration/test_durable_outbox.py` imports the executable shared
+`run_outbox_conformance` fixtures from the exact PyPI release
+`meridian-storage-projection==1.0.2`. It supplies public Structured intent
+seeding, durable inspection and fresh-runtime reopen callbacks. The portable
+suite covers owner/expiry rejection, exact acknowledgements, checkpoint
+revision, retry/quarantine, redaction, ordering and same-owner characterization.
+
+Adapter-owned tests add four concurrent claimers, competing completions,
+tenant/scope/Resource/projection isolation, numeric version ordering, real
+Writer rollback and immutable duplicates, and Runner target replay. Separate
+host processes exit abruptly after claim or target acknowledgement. A database
+fault after checkpoint persistence proves atomic rollback of completion and
+progress; a delayed checkpoint write proves lease expiry is checked at the
+final transition. Uncommitted source/intent never appears to a claimant.
+Missing metadata, changed columns and missing unique keys fail read-only
+startup validation. No generation-token fencing is claimed.
+
+The PostgreSQL 16/17 CI jobs run this suite both with the project environment
+and with a clean installed candidate wheel. The subprocess crash host uses
+that same installed interpreter; it never imports sibling repositories.

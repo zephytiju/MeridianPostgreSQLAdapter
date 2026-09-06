@@ -605,10 +605,11 @@ wheels = [
 
 [[package]]
 name = "meridian-storage-postgresql"
-version = "2.0.1"
+version = "2.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "meridian-storage-core" },
+    { name = "meridian-storage-projection" },
     { name = "meridian-storage-query" },
     { name = "meridian-storage-semantics" },
     { name = "psycopg", extra = ["binary"] },
@@ -631,6 +632,7 @@ requires-dist = [
     { name = "build", marker = "extra == 'test'", specifier = ">=1.2.2,<2" },
     { name = "meridian-storage-core", specifier = "==1.0.1" },
     { name = "meridian-storage-evidence", marker = "extra == 'test'", specifier = "==1.0.1" },
+    { name = "meridian-storage-projection", specifier = "==1.0.2" },
     { name = "meridian-storage-query", specifier = "==1.0.2" },
     { name = "meridian-storage-semantics", specifier = "==2.0.0" },
     { name = "mypy", marker = "extra == 'test'", specifier = ">=1.15,<2" },
@@ -642,6 +644,20 @@ requires-dist = [
     { name = "twine", marker = "extra == 'test'", specifier = ">=7.0,<8" },
 ]
 provides-extras = ["test"]
+
+[[package]]
+name = "meridian-storage-projection"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "meridian-storage-core" },
+    { name = "meridian-storage-query" },
+    { name = "meridian-storage-semantics" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/3a/4b453e87c4fd762e7ef944b9ea77d10ee40434d30206f46a5c163216cd76/meridian_storage_projection-1.0.2.tar.gz", hash = "sha256:019210a67f2c1e0e27ad964bd7e29f03ced3b8fbb2915ba042f0b18a49217cd0", size = 76402, upload-time = "2026-09-06T04:13:38.478Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/45/bb5a56bbc4ae888f0ea4ff618cf38b85acb62b35ff4a7ce058b094ba9a9c/meridian_storage_projection-1.0.2-py3-none-any.whl", hash = "sha256:f4d071609aa34f76871e195b567635ea990176341c04a2bcb6b8125b8e82390d", size = 73520, upload-time = "2026-09-06T04:13:37.13Z" },
+]
 
 [[package]]
 name = "meridian-storage-query"

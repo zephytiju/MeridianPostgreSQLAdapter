@@ -45,7 +45,13 @@ _STRUCTURED_PROFILES = frozenset(
     {"relational", "document", "key-value", "search", "geospatial", "time-series", "relation"}
 )
 _RESERVED_TABLES = frozenset(
-    {"__meridian_migrations", "__meridian_resources", "__meridian_evidence_replay"}
+    {
+        "__meridian_migrations",
+        "__meridian_resources",
+        "__meridian_evidence_replay",
+        "__meridian_outbox_state",
+        "__meridian_outbox_checkpoint",
+    }
 )
 _RESERVED_COLUMNS = frozenset(
     {

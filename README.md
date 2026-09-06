@@ -132,6 +132,100 @@ validation, activation planning/apply, Registry revision access, canonical
 encoding/decoding, and logical transfer. It does not add public engine concepts
 or bypass the Core SPI.
 
+## Durable projection outbox (2.1.0)
+
+Deployment composition can inject `PostgreSQLOutbox` into the released
+`ProjectionRunner`. It implements the four owner-based `OutboxPort` methods
+without changing the Core Adapter SPI, Writer, or Runner signatures. Business
+code continues to call `TransactionalOutboxWriter` through Meridian.
+
+```python
+# Deployment/host composition; create_context is the existing AdapterCreateContext
+# resolved by the platform from a pinned Binding and secret references.
+from meridian_storage.adapters.postgresql import PostgreSQLAdapterFactory, PostgreSQLOutbox
+from meridian_storage.projection import ProjectionRunner
+
+adapter = PostgreSQLAdapterFactory().create(create_context)
+adapter.open()
+try:
+    adapter.probe()  # read-only schema, capability and privilege checks
+    outbox = PostgreSQLOutbox(
+        adapter,
+        resource="platform.outbox",
+        spec=spec,                 # the same released ProjectionSpec as the runner
+        context=worker_context,    # OperationContext: tenant and exact Binding scopes
+        poison_threshold=5,
+        max_batch_size=1000,
+    )
+    runner = ProjectionRunner(
+        meridian=meridian, spec=spec, project=project,
+        outbox=outbox, batch_size=100, lease_seconds=60,
+    )
+    with meridian.context(worker_context):
+        runner.run_until_stopped(stop_event)
+finally:
+    adapter.close()
+```
+
+The host owns startup, termination, credentials, authorization, retries and
+scheduling. No SQL or driver client is supplied to application projectors.
+The injected adapter runtime must contain both the source and outbox Resource
+mappings; target writes use the runner's Meridian facade and may resolve to a
+different Binding. Source and intent commit through the Writer's single source
+Binding transaction. Cross-Binding atomicity is not claimed.
+
+The outbox Resource is a Structured relational Resource with identity `eventId`.
+Its immutable Schema and Binding layout contain every `OutboxDataV1.to_mapping()`
+field, each with `mutable=false` and scalar cardinality:
+
+| Logical fields | Logical type | Nullable |
+| --- | --- | --- |
+| formatVersion, eventId, sourceCatalog, sourceResource, sourceSchema, mutationKind, digest | string | false |
+| sourceIdentity, sourceVersion, payload, immutableReference | json | true |
+| targetLabels, operationContext | json | false |
+| occurredAt | utcTimestamp | false |
+
+JSON identity/version columns preserve integer, string and null distinctions.
+The layout uses safe adapter-owned physical column names (for example lowercase
+logical names). `payload` and `immutableReference` are mutually exclusive per
+the released intent contract. Use only the released Writer to append required
+intent; insert-only duplicate conflicts leave both original intent and durable
+progress unchanged. Layout fields cannot be mutable.
+
+An explicit `SchemaCompiler` / `MigrationExecutor` deployment migration creates
+`__meridian_outbox_state` and `__meridian_outbox_checkpoint` when an outbox layout
+is configured. Apply the new plan and refresh the physical fingerprint before
+startup. Existing databases with no outbox layout keep their previous DDL.
+Runtime probes and provider construction only read and validate the metadata
+shape, unique keys and privileges; they never create or repair tables. Grant the
+runtime SELECT/INSERT/UPDATE on these metadata tables through IaC. Declare
+scope-leading source/identity/version and occurrence/event indexes on large
+outbox Resources through the normal Schema and Binding index configuration.
+
+State and checkpoint keys include tenant, all configured scopes, outbox
+Resource and projection name. Changing filters for the same projection retains
+its leases and checkpoints. A different projection name consumes independently.
+Claims filter the exact source Catalog, Resource, Schema and required target
+labels. Only the earliest incomplete version for each source identity is
+eligible. Numeric versions order numerically; opaque versions use occurrence
+and event-id order. Independent identities may run concurrently. Quarantine
+blocks later work for that identity and is never skipped automatically.
+
+Claims lock a bounded batch with `FOR UPDATE SKIP LOCKED` and persist owner,
+acquisition, expiry and attempt before returning. Expired claims become eligible
+for reclaim. Release persists retry/quarantine with a redacted failure category;
+exception messages and payloads are not stored. Completion checks exact source
+version and current non-expired ownership, then advances the checkpoint by CAS
+and marks completion in one transaction. Expiry during checkpoint persistence
+rolls back both effects. Database time is used unless the caller explicitly
+supplies the port's deterministic UTC `now` parameter.
+
+The existing owner-only protocol **does not fence claim generations**. Hosts
+must avoid overlapping reuse of an owner string. A target acknowledgement may
+be replayed after a host crash; the projector/target must implement idempotent,
+version-aware writes. `get(event_id)` and `checkpoint(partition_key)` are
+adapter-owned deployment diagnostics, not new OutboxPort requirements.
+
 ## Development
 
 ```bash
@@ -150,7 +244,7 @@ Genuine integration tests cover `postgis/postgis:16-3.4-alpine` and
 
 ## Compatibility
 
-Version 2.0.0 pins Core 1.0.1, Semantics 2.0.0, and Query 1.0.2.
+Version 2.1.0 pins Core 1.0.1, Semantics 2.0.0, Query 1.0.2, and Projection 1.0.2.
 The Adapter SPI remains 1.0.0; `structured.put` uses Operation contract 2.0.0. The locked design revisions and supported
 PostgreSQL/PostGIS profiles are recorded in the wheel's `compatibility.json`.
 Native PostgreSQL queries are intentionally excluded from V1.

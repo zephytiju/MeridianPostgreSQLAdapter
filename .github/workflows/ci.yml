@@ -73,7 +73,7 @@ jobs:
           uv pip install --python "$RUNNER_TEMP/evidence-wheel/bin/python" dist/*.whl 'meridian-storage-evidence==1.0.1' 'pytest>=8.3,<9'
           uv pip check --python "$RUNNER_TEMP/evidence-wheel/bin/python"
           "$RUNNER_TEMP/evidence-wheel/bin/python" -c 'import meridian_storage.adapters.postgresql as pg; assert "evidence-wheel" in pg.__file__'
-          "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration/test_evidence_facade.py
+          "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration/test_evidence_facade.py tests/integration/test_durable_outbox.py
       - uses: actions/upload-artifact@v4
         with:
           name: postgresql-coverage-${{ matrix.engine }}

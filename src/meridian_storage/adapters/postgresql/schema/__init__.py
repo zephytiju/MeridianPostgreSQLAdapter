@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from psycopg import sql
 
 from .._settings import FieldLayout, PostgreSQLSettings, ResourceLayout
+from ..projection._storage import is_outbox, migration_statements, validate_layout
 from ..query._sql import BoundStatement, ident
 
 _INTERNAL_COLUMNS = frozenset(
@@ -131,6 +132,11 @@ class SchemaCompiler:
         ]
         if any(layout.ref.catalog == "evidence" for layout in self.settings.resources.values()):
             statements.append(self._evidence_replay_table())
+        outboxes = [layout for layout in self.settings.resources.values() if is_outbox(layout)]
+        if outboxes:
+            for layout in outboxes:
+                validate_layout(layout)
+            statements.extend(migration_statements(self.settings.physical_schema))
         for layout in self.settings.resources.values():
             statements.extend(self._resource(layout))
         canonical = [statement.command.as_string(None) for statement in statements]
