@@ -140,6 +140,18 @@ class DMLCompiler:
         input_value: Mapping[str, object],
         context: OperationContext,
     ) -> DMLCommand:
+        mode = input_value.get("mode")
+        if not isinstance(mode, str) or mode not in {"if_absent", "update", "upsert"}:
+            raise ValueError(
+                "structured.put requires an explicit if_absent, update, or upsert mode"
+            )
+        expected = input_value.get("expectedVersion")
+        if mode == "if_absent" and expected is not None:
+            raise ValueError("expectedVersion is invalid with structured.put mode if_absent")
+        if expected is not None and (
+            isinstance(expected, bool) or not isinstance(expected, (str, int))
+        ):
+            raise TypeError("expectedVersion must be a string or integer")
         data = input_value.get("data")
         if not isinstance(data, Mapping):
             raise TypeError("structured.put data must be an object")
@@ -159,7 +171,6 @@ class DMLCompiler:
             values_sql.append(expression)
             parameters.extend(bound)
         projection = self._returning(layout)
-        expected = input_value.get("expectedVersion")
         if expected is not None:
             identity = {name: data[name] for name in layout.identity if name in data}
             if len(identity) != len(layout.identity):
@@ -203,18 +214,53 @@ class DMLCompiler:
             )
         else:
             update = sql.SQL("__updated_at = t.__updated_at")
+        if mode == "update":
+            # Preserve the unconditional put field/version behavior: omitted
+            # nullable mutable fields take their insert value (NULL), immutable
+            # fields stay unchanged, and immutable-only rows do not advance.
+            clauses: list[sql.Composable] = []
+            update_parameters_list: list[object] = []
+            for field in mutable:
+                expression, bound = self._value(field, data.get(field.name))
+                clauses.append(sql.Identifier(field.column) + sql.SQL(" = ") + expression)
+                update_parameters_list.extend(bound)
+            if mutable:
+                update_assignments: sql.Composable = sql.SQL(", ").join(clauses) + sql.SQL(
+                    ", __record_version = t.__record_version + 1, __updated_at = clock_timestamp()"
+                )
+            else:
+                update_assignments = sql.SQL("__updated_at = t.__updated_at")
+            where = self._where(layout, {name: data[name] for name in layout.identity}, context)
+            command = (
+                sql.SQL("UPDATE {} AS t SET ").format(self._table(layout))
+                + update_assignments
+                + sql.SQL(" WHERE ")
+                + where.command
+                + sql.SQL(" RETURNING ")
+                + projection
+            )
+            return DMLCommand(
+                BoundStatement(command, (*update_parameters_list, *where.parameters)),
+                "put",
+                layout,
+                single=True,
+                conditional=True,
+            )
         command = (
             sql.SQL("INSERT INTO {} AS t (").format(self._table(layout))
             + sql.SQL(", ").join(sql.Identifier(column) for column in columns)
             + sql.SQL(") VALUES (")
             + sql.SQL(", ").join(values_sql)
-            + sql.SQL(") ON CONFLICT (")
-            + sql.SQL(", ").join(sql.Identifier(column) for column in identity_columns)
-            + sql.SQL(") DO UPDATE SET ")
-            + update
-            + sql.SQL(" RETURNING ")
-            + projection
+            + sql.SQL(")")
         )
+        if mode == "upsert":
+            command += (
+                sql.SQL(" ON CONFLICT (")
+                + sql.SQL(", ").join(sql.Identifier(column) for column in identity_columns)
+                + sql.SQL(") DO UPDATE SET ")
+                + update
+            )
+        command += sql.SQL(" RETURNING ") + projection
         return DMLCommand(BoundStatement(command, tuple(parameters)), "put", layout, single=True)
 
     def _get(
@@ -436,5 +482,6 @@ class DMLCompiler:
                 raise ValueError(
                     f"relation endpoint {field_name!r} references a Collection outside its pin"
                 )
+
 
 __all__ = ["DMLCommand", "DMLCompiler", "jsonable"]

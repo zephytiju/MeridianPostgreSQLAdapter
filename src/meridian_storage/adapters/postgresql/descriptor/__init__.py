@@ -46,7 +46,7 @@ def _operation_capability(method: str) -> OperationCapability:
         guarantees.append("external-migration")
     return OperationCapability(
         operation_contract=f"meridian.structured.{method}",
-        operation_versions=("1.0.0",),
+        operation_versions=("2.0.0",) if method == "put" else ("1.0.0",),
         guarantees=tuple(guarantees),
         limits={
             "maxPageSize": 500,

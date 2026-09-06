@@ -152,6 +152,7 @@ def test_crud_json_types_cas_and_search(
                     "balance": "123.4500",
                     "payload": encoded,
                 },
+                mode="update",
                 expected_version=1,
             )
         ),

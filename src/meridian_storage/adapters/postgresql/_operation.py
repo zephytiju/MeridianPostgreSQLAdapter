@@ -56,8 +56,6 @@ class OperationCompiler:
         operation = request.operation
         if operation.catalog not in {"structured", "evidence"}:
             raise ValueError("PostgreSQL V1 implements structured and evidence operations")
-        if operation.operation_version != "1.0.0":
-            raise ValueError("PostgreSQL V1 accepts only Operation version 1.0.0")
         prefix = f"meridian.{operation.catalog}."
         if not operation.operation_contract.startswith(prefix):
             raise ValueError("Operation contract does not match its Catalog")
@@ -79,6 +77,11 @@ class OperationCompiler:
         }
         if method not in allowed[operation.catalog]:
             raise ValueError(f"unsupported {operation.catalog} Operation contract: {method!r}")
+        version = "2.0.0" if (operation.catalog, method) == ("structured", "put") else "1.0.0"
+        if operation.operation_version != version:
+            raise ValueError(f"{operation.operation_contract} requires Operation version {version}")
+        if method == "put" and "queryPlan" in operation.input:
+            raise ValueError("structured.put cannot contain a queryPlan")
         if method in {"create_resource", "publish_schema"}:
             raise ValueError("physical DDL is only available through the Platform migration hook")
         if len(operation.resources) < 1:

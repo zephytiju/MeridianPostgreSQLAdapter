@@ -34,6 +34,42 @@ group under the stable id `postgresql`. Application code continues to use
 mapping-first Expressions and serialized Operations; it does not import the
 adapter, psycopg, or SQL builders.
 
+## Structured put modes (2.0.0)
+
+The released Structured Catalog defaults to `mode="if_absent"`: an existing
+scoped identity raises `ConflictError`. Use `mode="update"` for an existing
+record or explicit `mode="upsert"` to create or update. New PostgreSQL rows
+start at `recordVersion == 1`.
+
+```python
+structured = meridian.catalog("structured")
+created = meridian.execute(structured.put(resource=resource, data=data)).data
+updated = meridian.execute(structured.put(
+    resource=resource, data=changed_data, mode="update",
+    expected_version=created["recordVersion"],
+)).data
+meridian.execute(structured.put(resource=resource, data=data, mode="upsert"))
+```
+
+A non-null expected version is invalid with `if_absent`, including zero.
+For update/upsert, a supplied version requires an existing matching row; zero
+never creates. Every path retains tenant and configured scope isolation.
+
+This is a breaking change from implicit upsert. Migrate intentional updates
+and upserts explicitly, refresh the Binding capability fingerprint, and use
+the compatible package pins below. The adapter rejects old put Operations,
+missing normalized modes, unsupported versions, and query plans in put input.
+Other Operation versions and the Adapter SPI are unchanged.
+
+Existing field semantics remain: unconditional updates/upserts assign all
+mutable non-identity fields, including NULL for omitted nullable fields;
+version-checked puts update the supplied mutable fields. Immutable-only
+unconditional puts preserve their existing values and version. Return shape,
+initial version, update increments, and conflict codes remain unchanged.
+Core's existing bounded in-process idempotency recognizes same-key replay and
+returns the original result; a distinct equal-data create conflicts. This
+release adds no replay store or restart-durable replay guarantee for put.
+
 ## Binding settings
 
 Platform/Vangu IaC renders `meridian.postgresql.settings.v1` into a Meridian
@@ -114,8 +150,8 @@ Genuine integration tests cover `postgis/postgis:16-3.4-alpine` and
 
 ## Compatibility
 
-V1 pins `meridian-storage-core`, `meridian-storage-semantics`, and
-`meridian-storage-query` to `1.0.0`. The locked design revisions and supported
+Version 2.0.0 pins Core 1.0.1, Semantics 2.0.0, and Query 1.0.2.
+The Adapter SPI remains 1.0.0; `structured.put` uses Operation contract 2.0.0. The locked design revisions and supported
 PostgreSQL/PostGIS profiles are recorded in the wheel's `compatibility.json`.
 Native PostgreSQL queries are intentionally excluded from V1.
 

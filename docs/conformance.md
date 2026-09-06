@@ -60,3 +60,19 @@ Platform IaC tests; the adapter exposes no authority to perform them.
 Release builds pin the build backend and set a fixed `SOURCE_DATE_EPOCH`.
 Independent isolated builds of the same revision must therefore produce
 byte-identical wheel and sdist files; `twine check --strict` validates both.
+
+## Structured put contract 2.0.0
+
+`contracts/conformance/structured-put.v2.json` is copied byte-for-byte from
+Semantics 2.0.0's published sdist. `provenance.json` records both artifact and
+fixture digests. Contract tests validate all 11 normalized/fingerprint cases,
+25 invalid expressions, capability negotiation, and single-statement SQL.
+
+`tests/integration/test_put_modes.py` runs the 18 portable existence cases
+through the installed Structured Catalog and Core public runtime on real
+PostgreSQL. It also covers concurrent create winners, unconditional/CAS upsert
+races, tenant plus two scope dimensions, existing field/version behavior,
+immutable-only rows, original-result replay after a later mutation, mode-key
+conflict, and unsupported contract rejection before mutation. The suite uses
+a disposable migration-owned namespace and requires authenticated physical
+fingerprint verification before Core startup.

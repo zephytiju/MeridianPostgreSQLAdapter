@@ -1,26 +1,26 @@
 {
-  "adapterDescriptorFingerprint": "sha256:c7e9f79af2aefe43e7e589c1ec463217239be110d5687053782994439c7024cb",
+  "adapterDescriptorFingerprint": "sha256:cccb64dbf2c411edb0c0c36e4e0a6760d78620bf17b96dcb2e322140f2c4b2a1",
   "formatVersion": "meridian.postgresql.capability-fingerprints.v1",
   "manifests": [
     {
       "engineProfile": "postgresql-postgis-cluster",
       "engineVersion": "16-postgis-3.4",
-      "fingerprint": "sha256:7b6d1a5b7700270bd512a772a95a76bc1c32f2a63c0f8cba3e8d6e06b7c43f58"
+      "fingerprint": "sha256:70a6866754cd7bea0a7fb59f171bd0de159931852826b9e08faf3ea7fd5da18e"
     },
     {
       "engineProfile": "postgresql-postgis-cluster",
       "engineVersion": "17-postgis-3.5",
-      "fingerprint": "sha256:b5ea87fc26a5c8900aca7a25333deb0061c73ab42cccfee1844f6afce1af5320"
+      "fingerprint": "sha256:20dfa07ca1a9a0abf675359d0d9d6fa579dcbb208e8234921934819e59336876"
     },
     {
       "engineProfile": "postgresql-postgis-local-single-primary",
       "engineVersion": "16-postgis-3.4",
-      "fingerprint": "sha256:2a290ae0ad930869d8256eebce4138d44b369bb00ae7524e4d31b6d89260f81b"
+      "fingerprint": "sha256:349a4fa5c863ae70c7565fd0514bcd7ea30815cfff4becdccab1da0963226c6d"
     },
     {
       "engineProfile": "postgresql-postgis-local-single-primary",
       "engineVersion": "17-postgis-3.5",
-      "fingerprint": "sha256:54229542100cc08d022277b2b6253f34509a7b5cafd337eb2211364ccddeaa26"
+      "fingerprint": "sha256:9826464976eb46f56bd34e393d974090575fad6f0eee037ccdcafc7022e0e024"
     }
   ],
   "queryCapabilityFingerprint": "sha256:b74fab5ac877ec7f9cb1df6de5d9b424f5fbb8d54af00ee73a8805ae9b0a6d3a"
