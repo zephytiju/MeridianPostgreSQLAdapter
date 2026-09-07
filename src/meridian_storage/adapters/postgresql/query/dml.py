@@ -448,6 +448,10 @@ class DMLCompiler:
             ("__created_at", "createdAt"),
             ("__updated_at", "updatedAt"),
         ):
+            # Schema-declared timestamps own their logical result keys. Emitting
+            # a second alias here lets dict rows overwrite immutable user data.
+            if logical in {"createdAt", "updatedAt"} and logical in layout.field_map:
+                continue
             expressions.append(
                 ident(alias, physical) + sql.SQL(" AS {}").format(sql.Identifier(logical))
             )
