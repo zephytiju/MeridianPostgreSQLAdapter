@@ -72,6 +72,26 @@ def public_runtime(postgresql_dsn):
                 {"name": "value", "logicalType": "string", "nullable": False, "mutable": False},
             ],
         ),
+        *(
+            (
+                "timestamps_" + str(mask),
+                [
+                    {"name": "id", "logicalType": "string", "nullable": False, "mutable": False},
+                    {"name": "value", "logicalType": "string", "nullable": False, "mutable": True},
+                    *[
+                        {
+                            "name": name,
+                            "logicalType": "utcTimestamp",
+                            "nullable": True,
+                            "mutable": name != "createdAt",
+                        }
+                        for bit, name in enumerate(("createdAt", "updatedAt"))
+                        if mask & (1 << bit)
+                    ],
+                ],
+            )
+            for mask in range(4)
+        ),
     ):
         schema = SchemaDefinition(
             SchemaRef("structured", "puttest", name, "1.0.0"),
@@ -92,7 +112,7 @@ def public_runtime(postgresql_dsn):
                 "profile": "relational",
                 "schemaFingerprint": schema.fingerprint,
                 "resourceFingerprint": resource.fingerprint,
-                "fields": [{**field, "column": field["name"]} for field in fields],
+                "fields": [{**field, "column": field["name"].lower()} for field in fields],
                 "identity": ["id"],
                 "indexes": [],
                 "relation": None,
@@ -168,6 +188,14 @@ def public_runtime(postgresql_dsn):
     try:
         with connect(postgresql_dsn) as connection:
             MigrationExecutor(settings).apply(connection, plan)
+            # Replay the consumer's exact logical/system timestamp pair on creates.
+            for mask in range(4):
+                connection.execute(
+                    sql.SQL(
+                        "ALTER TABLE {} ALTER COLUMN __created_at SET DEFAULT "
+                        "'2026-09-07T02:32:25.706010Z'::timestamptz"
+                    ).format(sql.Identifier(namespace, "timestamps_" + str(mask)))
+                )
         runtime.start()
         yield runtime
     finally:
@@ -397,3 +425,93 @@ def test_unsupported_contracts_fail_before_writes(public_runtime):
             )
         )
     assert get(public_runtime, key) is None
+
+
+@pytest.mark.parametrize("mask", range(4))
+@pytest.mark.parametrize(
+    "mode,existing,version",
+    [
+        ("if_absent", False, None),
+        ("upsert", False, None),
+        ("update", True, None),
+        ("update", True, 1),
+        ("upsert", True, None),
+        ("upsert", True, 1),
+    ],
+)
+def test_logical_timestamp_round_trips(public_runtime, mask, mode, existing, version):
+    """Logical immutable provenance time must survive all public write/read paths."""
+    runtime = public_runtime
+    catalog = runtime.catalog("structured")
+    resource = "puttest.timestamps_" + str(mask)
+    data = {"id": uuid.uuid4().hex, "value": "original"}
+    logical = {
+        name: value
+        for bit, (name, value) in enumerate(
+            (
+                ("createdAt", "2026-09-07T02:32:25.701304Z"),
+                ("updatedAt", "2025-01-02T03:04:05.123456Z"),
+            )
+        )
+        if mask & (1 << bit)
+    }
+    data.update(logical)
+    with runtime.context(context()):
+        before = None
+        if existing:
+            before = runtime.execute(catalog.put(resource=resource, data=data)).data
+        data["value"] = "changed"
+        if existing and "updatedAt" in logical:
+            logical["updatedAt"] = "2025-02-03T04:05:06.234567Z"
+            data.update(logical)
+        result = runtime.execute(
+            catalog.put(
+                resource=resource,
+                data={
+                    k: v for k, v in data.items() if not (version is not None and k == "createdAt")
+                },
+                mode=mode,
+                expected_version=version,
+            )
+        ).data
+        assert result["recordVersion"] == (2 if existing else 1)
+        assert {name: result[name] for name in data} == data
+        assert set(result) == set(data) | {"createdAt", "updatedAt", "recordVersion"}
+        for name in ("createdAt", "updatedAt"):
+            if name not in logical:
+                assert result[name].endswith("Z")
+                if name == "createdAt":
+                    assert result[name] == "2026-09-07T02:32:25.706010Z"
+                assert result[name] not in logical.values()
+        if before:
+            assert result["createdAt"] == before["createdAt"]
+        assert (
+            runtime.execute(catalog.get(resource=resource, where={"id": data["id"]})).data == result
+        )
+        rows = runtime.execute(catalog.query(resource=resource, where={"id": data["id"]})).data
+        assert list(rows["items"]) == [result]
+        projected = runtime.execute(
+            catalog.query(
+                resource=resource,
+                where={"id": data["id"]},
+                select=list(data),
+            )
+        ).data
+        assert list(projected["items"]) == [data]
+
+
+@pytest.mark.parametrize("mask", [1, 2, 3])
+def test_null_logical_timestamps_are_not_system_metadata(public_runtime, mask):
+    runtime = public_runtime
+    resource = "puttest.timestamps_" + str(mask)
+    data = {"id": uuid.uuid4().hex, "value": "nullable"}
+    data.update(
+        {name: None for bit, name in enumerate(("createdAt", "updatedAt")) if mask & (1 << bit)}
+    )
+    with runtime.context(context()):
+        catalog = runtime.catalog("structured")
+        result = runtime.execute(catalog.put(resource=resource, data=data)).data
+        assert {name: result[name] for name in data} == data
+        assert (
+            runtime.execute(catalog.get(resource=resource, where={"id": data["id"]})).data == result
+        )

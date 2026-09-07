@@ -245,7 +245,7 @@ Genuine integration tests cover `postgis/postgis:16-3.4-alpine` and
 
 ## Compatibility
 
-Version 2.1.0 pins Core 1.0.1, Semantics 2.0.0, Query 1.0.2, and Projection 1.0.2.
+Version 2.1.1 pins Core 1.0.1, Semantics 2.0.0, Query 1.0.2, and Projection 1.0.2.
 The Adapter SPI remains 1.0.0; `structured.put` uses Operation contract 2.0.0. The locked design revisions and supported
 PostgreSQL/PostGIS profiles are recorded in the wheel's `compatibility.json`.
 Native PostgreSQL queries are intentionally excluded from V1.
@@ -253,3 +253,12 @@ Native PostgreSQL queries are intentionally excluded from V1.
 ## License
 
 Apache License 2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+
+## Logical timestamp fidelity (2.1.1)
+
+Schema-declared `createdAt` and `updatedAt` fields retain their logical values in mutation
+results, default reads, and explicit query projections. System timestamps are included under
+these names only when the Schema does not declare the corresponding field. Nullable logical
+timestamps remain null. This fixes duplicate SQL result aliases without changing storage,
+record versions, put modes, Evidence transactions, or durable outbox behavior.
