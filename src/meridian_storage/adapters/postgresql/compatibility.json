@@ -1,7 +1,7 @@
 {
   "formatVersion": "meridian.postgresql.compatibility.v1",
   "adapterId": "postgresql",
-  "packageVersion": "2.3.0",
+  "packageVersion": "2.3.1",
   "adapterContract": "1.0.0",
   "dependencies": {
     "meridian-storage-core": "1.1.0",

@@ -22,9 +22,9 @@ from meridian_storage.adapters.postgresql import (
     MigrationExecutor,
     PostgreSQLAdapterFactory,
     PostgreSQLSchemaRepository,
+    PostgreSQLSettings,
     SchemaCompiler,
 )
-from meridian_storage.adapters.postgresql._settings import PostgreSQLSettings
 
 pytestmark = pytest.mark.integration
 
