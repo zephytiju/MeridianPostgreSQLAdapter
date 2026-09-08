@@ -7,10 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 from conftest import make_binding, sample_settings_mapping
-from meridian_storage.errors import CompatibilityError
-from meridian_storage.spi.adapters import AdapterCreateContext, SecretValue
 
-from meridian_storage.adapters.postgresql import PostgreSQLAdapterFactory
 from meridian_storage.adapters.postgresql._settings import PostgreSQLSettings
 from meridian_storage.adapters.postgresql.schema import SchemaCompiler
 
@@ -119,16 +116,6 @@ def test_impossible_physical_layouts_fail_at_binding_parse() -> None:
             PostgreSQLSettings.from_binding(binding)
 
 
-def test_factory_rejects_unadvertised_engine_version() -> None:
-    binding, user, password = make_binding("postgresql://localhost/meridian")
-    binding = replace(binding, engine_version="18-postgis-3.6")
-    context = AdapterCreateContext(
-        binding=binding,
-        identity=SecretValue(user.encode()),
-        credential=SecretValue(password.encode()),
-    )
-    with pytest.raises(CompatibilityError, match="unsupported PostgreSQL/PostGIS Engine version"):
-        PostgreSQLAdapterFactory().create(context)
 
 
 def test_replay_table_name_is_reserved_for_adapter_storage() -> None:

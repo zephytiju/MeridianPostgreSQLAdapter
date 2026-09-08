@@ -10,6 +10,7 @@ import os
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -39,13 +40,6 @@ from .probe import ProbeService
 from .query import PostgreSQLQueryTranslator
 from .semantics import PostgreSQLSemanticsAdapter
 from .transactions import PostgreSQLAdapterSession
-
-_DEPENDENCY_PINS = {
-    "meridian-storage-core": "1.0.1",
-    "meridian-storage-projection": "1.0.2",
-    "meridian-storage-query": "1.0.2",
-    "meridian-storage-semantics": "2.0.0",
-}
 
 
 def _configure_connection(connection: Connection[Any]) -> None:
@@ -247,13 +241,10 @@ class PostgreSQLAdapterFactory:
                 ErrorCode.ADAPTER_CONTRACT,
                 "Binding does not select the PostgreSQL Adapter V1 contract",
             )
-        if (
-            binding.engine_profile not in ENGINE_VERSIONS
-            or binding.engine_version not in ENGINE_VERSIONS[binding.engine_profile]
-        ):
+        if binding.engine_profile not in ENGINE_VERSIONS:
             raise CompatibilityError(
                 ErrorCode.ADAPTER_CONTRACT,
-                "Binding selects an unsupported PostgreSQL/PostGIS Engine version",
+                "Binding selects an unsupported PostgreSQL/PostGIS Engine profile",
             )
         selected_manifest = manifest(binding.engine_profile, binding.engine_version)
         if binding.required_capability_fingerprint != selected_manifest.fingerprint:
@@ -261,12 +252,30 @@ class PostgreSQLAdapterFactory:
                 ErrorCode.CAPABILITY_FINGERPRINT,
                 "PostgreSQL capability fingerprint differs from the Binding pin",
             )
-        for package, expected in _DEPENDENCY_PINS.items():
-            observed = binding.compatibility_pins.get(package)
-            if observed is not None and observed != expected:
+        # Compare the installed artifact to the deployment's selection, never our
+        # historical build recipe. The installer owns full artifact lock validation.
+        for package in (
+            "meridian-storage-core",
+            "meridian-storage-semantics",
+            "meridian-storage-query",
+            "meridian-storage-projection",
+            "meridian-storage-postgresql",
+        ):
+            selected = binding.compatibility_pins.get(package)
+            if selected is None:
+                continue
+            try:
+                installed = version(package)
+            except PackageNotFoundError as exc:
                 raise CompatibilityError(
                     ErrorCode.ADAPTER_CONTRACT,
-                    f"{package} compatibility pin must be {expected}",
+                    f"deployment-selected package {package} is not installed",
+                ) from exc
+            if installed != selected:
+                raise CompatibilityError(
+                    ErrorCode.ADAPTER_CONTRACT,
+                    f"deployment lock drift for {package}: "
+                    f"selected {selected}, installed {installed}",
                 )
         return PostgreSQLAdapterRuntime(context)
 

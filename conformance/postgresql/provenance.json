@@ -1,0 +1,30 @@
+{
+  "sourceRelease": "https://github.com/zephytiju/MeridianDataLifecycle/releases/tag/v1.0.3",
+  "sourceCommit": "60726b0cbb39f19c22a8337e285e3af5b924b86a",
+  "sourceFiles": {
+    "conformance/postgresql/conftest.py": {
+      "url": "https://github.com/zephytiju/MeridianDataLifecycle/blob/60726b0cbb39f19c22a8337e285e3af5b924b86a/conformance/postgresql/conftest.py",
+      "sha256": "1c3446c07cf64d567f8bb62cd1148a0d399cc787b9f40216f080116ad3d13c4e"
+    },
+    "conformance/postgresql/binding.py": {
+      "url": "https://github.com/zephytiju/MeridianDataLifecycle/blob/60726b0cbb39f19c22a8337e285e3af5b924b86a/conformance/postgresql/binding.py",
+      "sha256": "e649a294229f1c333d76c2b905d4c84c9b70541b98d072f836a6dadb469c9b30"
+    },
+    "conformance/postgresql/example.py": {
+      "url": "https://github.com/zephytiju/MeridianDataLifecycle/blob/60726b0cbb39f19c22a8337e285e3af5b924b86a/conformance/postgresql/example.py",
+      "sha256": "a2d847d578672ab134c98f875e817c57b819b3303d83117d067642bdf0fc1881"
+    },
+    "conformance/postgresql/host.py": {
+      "url": "https://github.com/zephytiju/MeridianDataLifecycle/blob/60726b0cbb39f19c22a8337e285e3af5b924b86a/conformance/postgresql/host.py",
+      "sha256": "d99b08287198188a7015adab755916af6b0ca48e0439d376258fd15236020339"
+    },
+    "conformance/postgresql/test_released_runner.py": {
+      "url": "https://github.com/zephytiju/MeridianDataLifecycle/blob/60726b0cbb39f19c22a8337e285e3af5b924b86a/conformance/postgresql/test_released_runner.py",
+      "sha256": "8261dedfb4683318a64fe30273a758e188eb44bbaed430a30ac01875d28d91cf"
+    },
+    "examples/versioned_target.py": {
+      "url": "https://github.com/zephytiju/MeridianDataLifecycle/blob/60726b0cbb39f19c22a8337e285e3af5b924b86a/examples/versioned_target.py",
+      "sha256": "1528a7f38c84d959e492ce6e849cf7ed2225bd111fe68faf673864ecf9c73450"
+    }
+  }
+}

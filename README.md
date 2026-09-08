@@ -245,8 +245,11 @@ Genuine integration tests cover `postgis/postgis:16-3.4-alpine` and
 
 ## Compatibility
 
-Version 2.1.1 pins Core 1.0.1, Semantics 2.0.0, Query 1.0.2, and Projection 1.0.2.
-The Adapter SPI remains 1.0.0; `structured.put` uses Operation contract 2.0.0. The locked design revisions and supported
+Version 2.2.0 requires Core 1.1 or later within its compatible major range.
+Semantics, Query and Projection use compatible package ranges; deployments
+lock the exact selected public releases. Version 2.1.1's Core 1.0.1, Semantics
+2.0.0, Query 1.0.2 and Projection 1.0.2 recipe is historical provenance.
+The Adapter SPI remains 1.0.0; `structured.put` uses Operation contract 2.0.0. The design revisions and historical tested
 PostgreSQL/PostGIS profiles are recorded in the wheel's `compatibility.json`.
 Native PostgreSQL queries are intentionally excluded from V1.
 
@@ -262,3 +265,10 @@ results, default reads, and explicit query projections. System timestamps are in
 these names only when the Schema does not declare the corresponding field. Nullable logical
 timestamps remain null. This fixes duplicate SQL result aliases without changing storage,
 record versions, put modes, Evidence transactions, or durable outbox behavior.
+
+## Deployment release selection
+
+Deployment locks select Engine images and Meridian packages independently.
+Historical version recipes are provenance, while actual contracts, features,
+physical Schema, authentication and declared lock drift remain enforced.
+See [release validation and gate inventory](docs/release-validation.md).

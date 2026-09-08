@@ -133,7 +133,7 @@ def public_runtime(postgresql_dsn):
         settings={
             "formatVersion": "meridian.postgresql.settings.v1",
             "scopeKeys": ["workspace", "project"],
-            "topology": {"expectedStandbys": 0},
+            "topology": dict(binding.settings["topology"]),
             "resources": layouts,
         },
     )

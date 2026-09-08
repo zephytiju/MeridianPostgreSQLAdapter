@@ -26,7 +26,7 @@ MERIDIAN_POSTGRESQL_TEST_DSN='postgresql://meridian:meridian@127.0.0.1:55432/mer
 For PostgreSQL 17 + PostGIS 3.5, use image
 `postgis/postgis:17-3.5-alpine` and set
 `MERIDIAN_POSTGRESQL_ENGINE_VERSION=17-postgis-3.5`. CI runs the complete
-single-primary suite against both advertised version pins.
+single-primary suite against both recorded test selections.
 
 The integration suite applies the adapter-generated migration plan through the
 explicit migration hook and then verifies types, JSON, CAS races, transactional
@@ -42,10 +42,17 @@ Cluster tests are opt-in because they require one primary and at least two
 streaming standbys. The repository includes a disposable genuine-cluster runner:
 
 ```bash
-./scripts/run-cluster-conformance.sh
+uv build
+uv venv /tmp/meridian-postgresql-wheel
+uv pip install --python /tmp/meridian-postgresql-wheel/bin/python \
+  -c conformance/postgresql/requirements.txt dist/*.whl \
+  'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
+uv pip check --python /tmp/meridian-postgresql-wheel/bin/python
+MERIDIAN_POSTGRESQL_PYTHON=/tmp/meridian-postgresql-wheel/bin/python \
+  ./scripts/run-cluster-conformance.sh
 ```
 
-The CI cluster matrix runs that script with both advertised images. A local
+The CI cluster matrix runs that script with both recorded test images. A local
 version override uses `MERIDIAN_POSTGRESQL_IMAGE` together with the matching
 `MERIDIAN_POSTGRESQL_ENGINE_VERSION`.
 
@@ -81,7 +88,7 @@ fingerprint verification before Core startup.
 
 `tests/integration/test_durable_outbox.py` imports the executable shared
 `run_outbox_conformance` fixtures from the exact PyPI release
-`meridian-storage-projection==1.0.2`. It supplies public Structured intent
+`meridian-storage-projection==1.0.3`. It supplies public Structured intent
 seeding, durable inspection and fresh-runtime reopen callbacks. The portable
 suite covers owner/expiry rejection, exact acknowledgements, checkpoint
 revision, retry/quarantine, redaction, ordering and same-owner characterization.
@@ -99,3 +106,9 @@ startup validation. No generation-token fencing is claimed.
 The PostgreSQL 16/17 CI jobs run this suite both with the project environment
 and with a clean installed candidate wheel. The subprocess crash host uses
 that same installed interpreter; it never imports sibling repositories.
+
+## Independent release selection
+
+See [the complete gate inventory](release-validation.md) for selected/observed
+provenance, unlisted metadata regression, retained negative checks, exact image
+selection, and public-release closure requirements.

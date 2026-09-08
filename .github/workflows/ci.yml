@@ -24,6 +24,7 @@ jobs:
           python-version: ${{ matrix.python }}
           enable-cache: true
       - run: uv sync --extra test --locked
+      - run: uv pip check --python .venv/bin/python
       - run: uv run ruff check .
       - run: uv run mypy
       - run: uv run python scripts/verify_contracts.py
@@ -37,10 +38,10 @@ jobs:
         include:
           - engine: pg16-postgis34
             version: 16-postgis-3.4
-            image: postgis/postgis:16-3.4-alpine
+            image: postgis/postgis@sha256:681931a625df344215e9b8998bf34daf146b6a395ceacee4439eb9c85869239f
           - engine: pg17-postgis35
-            version: 17-postgis-3.5
-            image: postgis/postgis:17-3.5-alpine
+            version: 17.11-postgis-3.5.7
+            image: postgis/postgis@sha256:894f570c0cf0664ed5576a8fd5d5bfb8fb1b19d592885b686c3a88c8bd90c41f
     services:
       postgres:
         image: ${{ matrix.image }}
@@ -56,6 +57,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
+      MERIDIAN_POSTGRESQL_IMAGE: ${{ matrix.image }}
       MERIDIAN_POSTGRESQL_TEST_DSN: postgresql://meridian:meridian@127.0.0.1:5432/meridian
       MERIDIAN_POSTGRESQL_ENGINE_VERSION: ${{ matrix.version }}
     steps:
@@ -65,21 +67,29 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
+      - run: uv pip check --python .venv/bin/python
       - run: uv run pytest -m 'not cluster' --cov --cov-report=xml --junitxml=postgresql-tests.xml
       - name: Verify built wheel through the real facade
         run: |
           uv build
           uv venv "$RUNNER_TEMP/evidence-wheel"
-          uv pip install --python "$RUNNER_TEMP/evidence-wheel/bin/python" dist/*.whl 'meridian-storage-evidence==1.0.1' 'pytest>=8.3,<9'
+          uv pip install --python "$RUNNER_TEMP/evidence-wheel/bin/python" -c conformance/postgresql/requirements.txt dist/*.whl 'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
           uv pip check --python "$RUNNER_TEMP/evidence-wheel/bin/python"
           "$RUNNER_TEMP/evidence-wheel/bin/python" -c 'import meridian_storage.adapters.postgresql as pg; assert "evidence-wheel" in pg.__file__'
-          "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration/test_evidence_facade.py tests/integration/test_durable_outbox.py tests/integration/test_put_modes.py
+          "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration --junitxml=wheel-integration.xml
+          "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest conformance/postgresql --junitxml=projection-tests.xml
+          "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/record_conformance.py --junit wheel-integration.xml --junit projection-tests.xml
+      - run: uv run python scripts/record_conformance.py --junit postgresql-tests.xml --output postgresql-project-provenance.json
       - uses: actions/upload-artifact@v4
         with:
           name: postgresql-coverage-${{ matrix.engine }}
           path: |
             coverage.xml
             postgresql-tests.xml
+            wheel-integration.xml
+            projection-tests.xml
+            postgresql-provenance.json
+            postgresql-project-provenance.json
 
   cluster:
     runs-on: ubuntu-latest
@@ -89,10 +99,10 @@ jobs:
         include:
           - engine: pg16-postgis34
             version: 16-postgis-3.4
-            image: postgis/postgis:16-3.4-alpine
+            image: postgis/postgis@sha256:681931a625df344215e9b8998bf34daf146b6a395ceacee4439eb9c85869239f
           - engine: pg17-postgis35
-            version: 17-postgis-3.5
-            image: postgis/postgis:17-3.5-alpine
+            version: 17.11-postgis-3.5.7
+            image: postgis/postgis@sha256:894f570c0cf0664ed5576a8fd5d5bfb8fb1b19d592885b686c3a88c8bd90c41f
     env:
       MERIDIAN_POSTGRESQL_IMAGE: ${{ matrix.image }}
       MERIDIAN_POSTGRESQL_ENGINE_VERSION: ${{ matrix.version }}
@@ -103,7 +113,22 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
-      - run: ./scripts/run-cluster-conformance.sh
+      - run: uv pip check --python .venv/bin/python
+      - run: uv build
+      - name: Run all cluster contracts from installed wheel
+        run: |
+          uv venv "$RUNNER_TEMP/cluster-wheel"
+          uv pip install --python "$RUNNER_TEMP/cluster-wheel/bin/python" -c conformance/postgresql/requirements.txt dist/*.whl 'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
+          uv pip check --python "$RUNNER_TEMP/cluster-wheel/bin/python"
+          MERIDIAN_POSTGRESQL_PYTHON="$RUNNER_TEMP/cluster-wheel/bin/python" ./scripts/run-cluster-conformance.sh --junitxml=cluster-tests.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postgresql-cluster-${{ matrix.engine }}
+          path: |
+            cluster-tests.xml
+            cluster-integration.xml
+            cluster-projection-tests.xml
+            cluster-provenance.json
 
   package:
     runs-on: ubuntu-latest
@@ -116,6 +141,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
+      - run: uv pip check --python .venv/bin/python
       - run: uv build
       - run: uv run twine check --strict dist/*
       - uses: actions/upload-artifact@v4

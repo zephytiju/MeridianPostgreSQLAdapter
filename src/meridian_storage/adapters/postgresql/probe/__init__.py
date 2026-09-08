@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
@@ -45,12 +46,22 @@ class ProbeService:
         self.engine_version = engine_version
 
     def probe(self, connection: Connection[Any]) -> tuple[AdapterProbe, HealthStatus]:
+        if connection.pgconn.protocol_version != 3:
+            raise RuntimeError("PostgreSQL wire protocol 3 is required")
         with connection.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') AS present"
+            )
+            extension = cursor.fetchone()
+            if not extension or not extension["present"]:
+                raise RuntimeError("required PostgreSQL extension unavailable: postgis")
             cursor.execute(
                 "SELECT current_setting('server_version_num') AS server_version_num, "
                 "PostGIS_Lib_Version() AS postgis_version, current_database() AS database_name, "
                 "session_user AS session_user, pg_is_in_recovery() AS recovery, "
-                "current_setting('transaction_isolation') AS isolation"
+                "current_setting('transaction_isolation') AS isolation, "
+                "current_setting('server_version') AS server_version, "
+                "current_setting('transaction_read_only') AS read_only"
             )
             row = cursor.fetchone()
             if row is None:
@@ -73,11 +84,20 @@ class ProbeService:
                 (self.settings.physical_schema,),
             )
             privileges = cursor.fetchone()
-        server_major = str(row["server_version_num"])[:2]
+        server_major = str(int(row["server_version_num"]) // 10000)
+        server_version = str(row["server_version"]).split(" ", 1)[0]
         postgis_version = str(row["postgis_version"])
-        expected_postgresql, expected_postgis = self._expected_versions()
-        if server_major != expected_postgresql or not postgis_version.startswith(expected_postgis):
-            raise RuntimeError("authenticated Engine version does not match the Binding pin")
+        # Preserve numeric legacy deployment expectations without turning image
+        # labels/digests or our historical tested list into release gates.
+        expected = re.fullmatch(r"(\d+(?:\.\d+)*)-postgis-(\d+(?:\.\d+)*)", self.engine_version)
+        if expected is not None:
+            for selected, observed in zip(
+                expected.groups(), (server_version, postgis_version), strict=True
+            ):
+                if observed.split(".")[: len(selected.split("."))] != selected.split("."):
+                    raise RuntimeError(
+                        "authenticated Engine version does not match the Binding pin"
+                    )
         if str(row["isolation"]) != "read committed":
             raise RuntimeError("PostgreSQL default transaction isolation must be READ COMMITTED")
         if self.settings.require_tls and not tls:
@@ -88,6 +108,8 @@ class ProbeService:
         role = "standby" if recovery else "primary"
         if recovery:
             raise RuntimeError("the Adapter write endpoint must resolve to a primary")
+        if row["read_only"] != "off":
+            raise RuntimeError("the Adapter write endpoint must permit read-write transactions")
         if (
             self.settings.engine_profile.endswith("cluster")
             and standbys < self.settings.expected_standbys
@@ -95,6 +117,7 @@ class ProbeService:
             raise RuntimeError("cluster has fewer streaming standbys than the pinned profile")
         if self.settings.engine_profile.endswith("local-single-primary") and standbys:
             raise RuntimeError("local single-primary profile unexpectedly exposes standbys")
+        self._verify_required_features(connection)
         # Exercise begin/rollback without DDL or writes. The transaction id remains unassigned.
         with connection.transaction(force_rollback=True):
             rolled_back_probe = connection.execute(
@@ -109,7 +132,12 @@ class ProbeService:
             "adapter": "postgresql",
             "database": str(row["database_name"]),
             "engineProfile": self.settings.engine_profile,
-            "engineVersion": self.engine_version,
+            "engineVersion": self.engine_version,  # Legacy selection field, never observation.
+            "selectedEngineVersion": self.engine_version,
+            "observedEngineVersion": f"{server_version}-postgis-{postgis_version}",
+            "postgresqlVersion": server_version,
+            "requiredFeatures": "passed",
+            "protocolVersion": str(connection.pgconn.protocol_version),
             "postgisVersion": postgis_version,
             "role": role,
             "rollbackProbe": "passed",
@@ -118,7 +146,9 @@ class ProbeService:
             "tls": "enabled" if tls else "disabled",
         }
         return AdapterProbe(
-            manifest(self.settings.engine_profile, self.engine_version), evidence
+            manifest(self.settings.engine_profile, self.engine_version),
+            evidence,
+            observed_engine_version=f"{server_version}-postgis-{postgis_version}",
         ), health
 
     def verify_physical(
@@ -336,9 +366,36 @@ class ProbeService:
                 if not row or not row["allowed"]:
                     raise RuntimeError("runtime identity lacks Evidence replay storage privileges")
 
-    def _expected_versions(self) -> tuple[str, str]:
-        postgresql, postgis = self.engine_version.split("-postgis-", 1)
-        return postgresql, postgis
+    @staticmethod
+    def _verify_required_features(connection: Connection[Any]) -> None:
+        # Read-only semantic smoke probes, independent of release membership.
+        # Missing extension/type/function/privilege fails before readiness.
+        statements = {
+            "PostGIS geography distance": (
+                "SELECT ST_DWithin(ST_SetSRID(ST_MakePoint(0, 0), 4326)::geography, "
+                "ST_SetSRID(ST_MakePoint(0, 0), 4326)::geography, 1) AS passed"
+            ),
+            "JSONB mutation": (
+                "SELECT jsonb_set('{\"a\": 1}'::jsonb, '{a}', '2'::jsonb) "
+                "= '{\"a\": 2}'::jsonb AS passed"
+            ),
+            "recursive traversal": (
+                "WITH RECURSIVE walk(n) AS (VALUES (1) UNION ALL "
+                "SELECT n + 1 FROM walk WHERE n < 2) SELECT max(n) = 2 AS passed FROM walk"
+            ),
+            "migration lock hashing": (
+                "SELECT hashtextextended('meridian-feature-probe', 0) IS NOT NULL AS passed"
+            ),
+        }
+        for feature, statement in statements.items():
+            try:
+                row = connection.execute(statement).fetchone()
+            except Exception as exc:
+                raise RuntimeError(
+                    f"required PostgreSQL/PostGIS feature unavailable: {feature}"
+                ) from exc
+            if not row or not row["passed"]:
+                raise RuntimeError(f"required PostgreSQL/PostGIS feature failed: {feature}")
 
 
 __all__ = ["HealthStatus", "ProbeService"]
