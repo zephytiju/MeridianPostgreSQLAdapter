@@ -50,6 +50,9 @@ def main() -> None:
     }
     evidence = {
         "formatVersion": "meridian.postgresql.conformance.v1",
+        "sourceCommit": os.environ.get("GITHUB_SHA") or subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip(),
         "selectedEngineVersion": os.environ.get(
             "MERIDIAN_POSTGRESQL_ENGINE_VERSION", "16-postgis-3.4"
         ),
@@ -63,7 +66,7 @@ def main() -> None:
         "candidateArtifacts": {
             p.name: hashlib.sha256(p.read_bytes()).hexdigest()
             for p in sorted(Path("dist").glob("*"))
-            if p.is_file()
+            if p.is_file() and (p.name.endswith(".whl") or p.name.endswith(".tar.gz"))
         },
         "results": results,
     }

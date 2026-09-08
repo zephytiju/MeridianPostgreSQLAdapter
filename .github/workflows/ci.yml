@@ -24,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python }}
           enable-cache: true
       - run: uv sync --extra test --locked
-      - run: uv pip check
+      - run: uv pip check --python .venv/bin/python
       - run: uv run ruff check .
       - run: uv run mypy
       - run: uv run python scripts/verify_contracts.py
@@ -67,17 +67,19 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
-      - run: uv pip check
+      - run: uv pip check --python .venv/bin/python
       - run: uv run pytest -m 'not cluster' --cov --cov-report=xml --junitxml=postgresql-tests.xml
       - name: Verify built wheel through the real facade
         run: |
           uv build
           uv venv "$RUNNER_TEMP/evidence-wheel"
-          uv pip install --python "$RUNNER_TEMP/evidence-wheel/bin/python" dist/*.whl 'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
+          uv pip install --python "$RUNNER_TEMP/evidence-wheel/bin/python" -c conformance/postgresql/requirements.txt dist/*.whl 'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
           uv pip check --python "$RUNNER_TEMP/evidence-wheel/bin/python"
           "$RUNNER_TEMP/evidence-wheel/bin/python" -c 'import meridian_storage.adapters.postgresql as pg; assert "evidence-wheel" in pg.__file__'
           "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration --junitxml=wheel-integration.xml
-      - run: uv run python scripts/record_conformance.py --junit postgresql-tests.xml --junit wheel-integration.xml
+          "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest conformance/postgresql --junitxml=projection-tests.xml
+          "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/record_conformance.py --junit wheel-integration.xml --junit projection-tests.xml
+      - run: uv run python scripts/record_conformance.py --junit postgresql-tests.xml --output postgresql-project-provenance.json
       - uses: actions/upload-artifact@v4
         with:
           name: postgresql-coverage-${{ matrix.engine }}
@@ -85,7 +87,9 @@ jobs:
             coverage.xml
             postgresql-tests.xml
             wheel-integration.xml
+            projection-tests.xml
             postgresql-provenance.json
+            postgresql-project-provenance.json
 
   cluster:
     runs-on: ubuntu-latest
@@ -109,15 +113,21 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
-      - run: uv pip check
+      - run: uv pip check --python .venv/bin/python
       - run: uv build
-      - run: ./scripts/run-cluster-conformance.sh --junitxml=cluster-tests.xml
+      - name: Run all cluster contracts from installed wheel
+        run: |
+          uv venv "$RUNNER_TEMP/cluster-wheel"
+          uv pip install --python "$RUNNER_TEMP/cluster-wheel/bin/python" -c conformance/postgresql/requirements.txt dist/*.whl 'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
+          uv pip check --python "$RUNNER_TEMP/cluster-wheel/bin/python"
+          MERIDIAN_POSTGRESQL_PYTHON="$RUNNER_TEMP/cluster-wheel/bin/python" ./scripts/run-cluster-conformance.sh --junitxml=cluster-tests.xml
       - uses: actions/upload-artifact@v4
         with:
           name: postgresql-cluster-${{ matrix.engine }}
           path: |
             cluster-tests.xml
             cluster-integration.xml
+            cluster-projection-tests.xml
             cluster-provenance.json
 
   package:
@@ -131,7 +141,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --extra test --locked
-      - run: uv pip check
+      - run: uv pip check --python .venv/bin/python
       - run: uv build
       - run: uv run twine check --strict dist/*
       - uses: actions/upload-artifact@v4

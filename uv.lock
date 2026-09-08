@@ -583,29 +583,29 @@ wheels = [
 
 [[package]]
 name = "meridian-storage-core"
-version = "1.0.1"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7c/2e/4c665a14752b4e72c5a9e6d603fb4c7f63e7d9a0ec17b08beed6cbec1979/meridian_storage_core-1.0.1.tar.gz", hash = "sha256:9244a6fac589f402a82037f08e2d57a5ae4f9747c7c825b46cedf8c6d67f2b80", size = 105003, upload-time = "2026-09-06T02:36:26.492Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/c5/f429ffd7682ace9656bbfef07170d94109ee9fce61d793a5dc3392435631/meridian_storage_core-1.1.0.tar.gz", hash = "sha256:46f7b64b706112dad0b62f768bfaf8b05f22d73d87f77702a0b3f7fd61544ca7", size = 113951, upload-time = "2026-09-07T23:50:05.333Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/fe/517f9dc313df8312dc7d56d509c83ccc787a44ce584198c3066bcabba1ee/meridian_storage_core-1.0.1-py3-none-any.whl", hash = "sha256:5c873da941b7b5e14ca0d852d723f919e88a28bbf6cc48ae0ef985b64cac9a97", size = 76320, upload-time = "2026-09-06T02:36:25.075Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/ab/eaeab612cacaef7a1ec798811a345f0e0934b4f7224c903c95a7550f8514/meridian_storage_core-1.1.0-py3-none-any.whl", hash = "sha256:fc7372a17993f43ec285e3d52c0e9c458ef8e6f5ce13bb2d1b01b064aa8eff49", size = 80344, upload-time = "2026-09-07T23:50:03.813Z" },
 ]
 
 [[package]]
 name = "meridian-storage-evidence"
-version = "1.0.1"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "meridian-storage-core" },
     { name = "meridian-storage-semantics" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/94/68/ea1c53d6b1ec90e5d05ac0fc21e77519102ea8fc54d7b8f055be532fbc4b/meridian_storage_evidence-1.0.1.tar.gz", hash = "sha256:2438ef0fdf34a9f7712c1c3649235d05d4911314d3c5e20a560cd2f8a0399d22", size = 60345, upload-time = "2026-09-06T03:17:57.166Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/df/146cbe23700b70db96674333610cbfffe297b7f71b07fed92a039cf97eec/meridian_storage_evidence-1.0.2.tar.gz", hash = "sha256:df5861b8f938aea8a515818b42b3373a0086b6642b691da1a976bc54577eedfa", size = 61272, upload-time = "2026-09-08T00:45:44.523Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/7b/42e857505a89f6bc5b20bba6a824ca0831cc86653699d174570b9bb23aa9/meridian_storage_evidence-1.0.1-py3-none-any.whl", hash = "sha256:2fa9b5bb730a535432362a105a552e6c59b4da73521cde5bfbc477bbc32c2276", size = 55277, upload-time = "2026-09-06T03:17:55.893Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/34/42e845419719d4111e293e4086016de57a50309c2f563bbc94157d580a33/meridian_storage_evidence-1.0.2-py3-none-any.whl", hash = "sha256:25305ebcc4a2a4668ec365c8c20c0793d7074d88f96f7c5539af50bfcc34f449", size = 55653, upload-time = "2026-09-08T00:45:43.208Z" },
 ]
 
 [[package]]
 name = "meridian-storage-postgresql"
-version = "2.1.1"
+version = "2.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "meridian-storage-core" },
@@ -630,11 +630,11 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "build", marker = "extra == 'test'", specifier = ">=1.2.2,<2" },
-    { name = "meridian-storage-core", specifier = "==1.0.1" },
-    { name = "meridian-storage-evidence", marker = "extra == 'test'", specifier = "==1.0.1" },
-    { name = "meridian-storage-projection", specifier = "==1.0.2" },
-    { name = "meridian-storage-query", specifier = "==1.0.2" },
-    { name = "meridian-storage-semantics", specifier = "==2.0.0" },
+    { name = "meridian-storage-core", specifier = ">=1.1.0,<2" },
+    { name = "meridian-storage-evidence", marker = "extra == 'test'", specifier = ">=1.0.1,<2" },
+    { name = "meridian-storage-projection", specifier = ">=1.0.2,<2" },
+    { name = "meridian-storage-query", specifier = ">=1.0.2,<2" },
+    { name = "meridian-storage-semantics", specifier = ">=2.0.0,<3" },
     { name = "mypy", marker = "extra == 'test'", specifier = ">=1.15,<2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.9,<4" },
     { name = "psycopg-pool", specifier = ">=3.2.6,<4" },
@@ -647,41 +647,41 @@ provides-extras = ["test"]
 
 [[package]]
 name = "meridian-storage-projection"
-version = "1.0.2"
+version = "1.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "meridian-storage-core" },
     { name = "meridian-storage-query" },
     { name = "meridian-storage-semantics" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f8/3a/4b453e87c4fd762e7ef944b9ea77d10ee40434d30206f46a5c163216cd76/meridian_storage_projection-1.0.2.tar.gz", hash = "sha256:019210a67f2c1e0e27ad964bd7e29f03ced3b8fbb2915ba042f0b18a49217cd0", size = 76402, upload-time = "2026-09-06T04:13:38.478Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/f8/648174ae45d3daec64878a55dca57af6a0d188a8f9be9c4106986511565f/meridian_storage_projection-1.0.3.tar.gz", hash = "sha256:dcebd798188196819cbb319e393c8627357f6e628f3eaab20be38e235c4ed9c1", size = 84657, upload-time = "2026-09-08T01:03:55.011Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/45/bb5a56bbc4ae888f0ea4ff618cf38b85acb62b35ff4a7ce058b094ba9a9c/meridian_storage_projection-1.0.2-py3-none-any.whl", hash = "sha256:f4d071609aa34f76871e195b567635ea990176341c04a2bcb6b8125b8e82390d", size = 73520, upload-time = "2026-09-06T04:13:37.13Z" },
+    { url = "https://files.pythonhosted.org/packages/09/b6/d5a3e7869ac6f64976f0b09cc437e8d00e5081ac68ac073e5212b917c51c/meridian_storage_projection-1.0.3-py3-none-any.whl", hash = "sha256:671282aeee9102c713eba0463c48ba72b8afc4560bff765dba7a58073b9da0ea", size = 73796, upload-time = "2026-09-08T01:03:53.772Z" },
 ]
 
 [[package]]
 name = "meridian-storage-query"
-version = "1.0.2"
+version = "1.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "meridian-storage-core" },
     { name = "meridian-storage-semantics" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/10/3251d6213d0971cf4408cc5ccc59b9dd3fdfdf7199193616041dd3cdb952/meridian_storage_query-1.0.2.tar.gz", hash = "sha256:782814c2ee94e4563029566a87e0b86ea87d62078b103ec5d3cdcc4763fab1fc", size = 81026, upload-time = "2026-09-06T03:22:49.858Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/3e/e757d80066549421db6345f6e3b7acd78f2e23e0b8bff2202ed2d0326a98/meridian_storage_query-1.0.3.tar.gz", hash = "sha256:1a1bfea2e77ccbef9da6b9b67fe9d003c4e7ae0dbad15cbe5de07d2be97cfb58", size = 83622, upload-time = "2026-09-08T00:44:33.925Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/7d/744ebfe6bb90f084dff5a56f2cf818a7d2ac94a7604e09cbd8c35dd68362/meridian_storage_query-1.0.2-py3-none-any.whl", hash = "sha256:fa4d7b157a8fd1c1ba18cedab09dadf0e8f5e301f5734e3e38f41906853527b8", size = 63645, upload-time = "2026-09-06T03:22:48.473Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/b9/ef743ce02b3b1f61f95e1750c3771d86907b5a63d221d1487e200aa20e3e/meridian_storage_query-1.0.3-py3-none-any.whl", hash = "sha256:615035e5d50fd6b1cb6bbdc042eaca2c07cf7f2cc5fe0db68a2c66dd7e36455b", size = 65016, upload-time = "2026-09-08T00:44:32.553Z" },
 ]
 
 [[package]]
 name = "meridian-storage-semantics"
-version = "2.0.0"
+version = "2.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "meridian-storage-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/5e/9cbf501bc2ee9e4efe64d0fd2e8b13020364932b20113cab63dcf9b323d6/meridian_storage_semantics-2.0.0.tar.gz", hash = "sha256:a62cd1255e04a030847afa1e6553434dfe5efdf33dd7878401141b1c5e80c19b", size = 86948, upload-time = "2026-09-06T02:59:03.246Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/bc/7c82c5c04fe2836f5d2afebc5dcdfade7bfd12950c44e3e9a2fa26c0ce77/meridian_storage_semantics-2.0.1.tar.gz", hash = "sha256:982c94d2697592456b8d8ba862416a80a141c485d5349b3c0d3dcd0dd9ea3fcd", size = 89003, upload-time = "2026-09-08T00:27:10.699Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/43/e37cf7ce3beb4081bb0f9b59bfe7ca9c52565e2ec0cb818db25bd489d7cd/meridian_storage_semantics-2.0.0-py3-none-any.whl", hash = "sha256:86c5f5c4d7f7af045b70e5e7480b21d794d166c37d2d76acb54c4720d49732d5", size = 68716, upload-time = "2026-09-06T02:59:01.815Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/41/5659dd92edd82405caad6a8c054df646f6ce02f9d2b14e5cf72fe11b5205/meridian_storage_semantics-2.0.1-py3-none-any.whl", hash = "sha256:5acd127b849a7898c33ed33308b595490447dddb5af9a7d2ec1df16b546279a4", size = 69015, upload-time = "2026-09-08T00:27:09.269Z" },
 ]
 
 [[package]]

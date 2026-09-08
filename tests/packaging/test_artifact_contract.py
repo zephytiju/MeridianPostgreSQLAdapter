@@ -11,10 +11,10 @@ def test_compatibility_ledger_is_packaged_and_exact() -> None:
     compatibility = json.loads(package.joinpath("compatibility.json").read_text())
     assert compatibility["packageVersion"] == "2.2.0"
     assert compatibility["dependencies"] == {
-        "meridian-storage-projection": "1.0.2",
+        "meridian-storage-projection": "1.0.3",
         "meridian-storage-core": "1.1.0",
-        "meridian-storage-query": "1.0.2",
-        "meridian-storage-semantics": "2.0.0",
+        "meridian-storage-query": "1.0.3",
+        "meridian-storage-semantics": "2.0.1",
     }
     assert compatibility["designRevisions"]["postgresqlPostgisLld"] == 41
 

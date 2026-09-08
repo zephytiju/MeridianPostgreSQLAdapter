@@ -5,9 +5,9 @@
   "adapterContract": "1.0.0",
   "dependencies": {
     "meridian-storage-core": "1.1.0",
-    "meridian-storage-semantics": "2.0.0",
-    "meridian-storage-query": "1.0.2",
-    "meridian-storage-projection": "1.0.2"
+    "meridian-storage-semantics": "2.0.1",
+    "meridian-storage-query": "1.0.3",
+    "meridian-storage-projection": "1.0.3"
   },
   "designRevisions": {
     "meridianHld": 56,
@@ -27,7 +27,7 @@
     ]
   },
   "testedCatalogs": {
-    "meridian-storage-evidence": "1.0.1"
+    "meridian-storage-evidence": "1.0.2"
   },
   "releaseMetadataPolicy": "dependencies and engineProfiles record a tested recipe, never an acceptance allowlist; deployment owns exact locks"
 }

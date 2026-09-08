@@ -66,13 +66,24 @@ The built wheel runs all integration tests in a separate installed environment.
 selected images/versions, Docker registry digests, authenticated PostgreSQL and
 PostGIS observations, installed package versions, candidate artifact hashes,
 and JUnit counts. CI retains these JSON records with JUnit and coverage.
-A standalone wheel interpreter can be passed as `MERIDIAN_POSTGRESQL_PYTHON`
+An installed wheel interpreter must be passed as `MERIDIAN_POSTGRESQL_PYTHON`
 to the same disposable cluster runner. This changes only the test interpreter,
 not the required acceptance cases.
 
-The wider release-closure conformance must additionally preserve immutable
-Usage/Cost and projection latest/tombstone and both host-drain outcomes using
-public owning-package artifacts. Adapter unit metadata tests do not establish
-these cross-package results. Final delivery evidence must identify the exact
-public release closure and its executed checks; an unresolved dependency
-closure prevents completion.
+The copied public Projection 1.0.3 provider fixture in
+`conformance/postgresql/` additionally proves v1-after-v2 replay, v2 preservation,
+latest-version/tombstone reads, all three abrupt process-crash boundaries,
+exact acknowledgement, and successful bounded drain versus timeout followed by
+host termination and lease-expiry recovery. `provenance.json` retains original
+source file hashes. Adaptations only select this deployment's package locks,
+allow both topology profiles and normalize import style; semantic tests and
+versioned-target composition are preserved. These are test-host fixtures over
+installed public libraries, not a new runtime API or sibling-source dependency.
+
+The clean closure selects Core 1.1.0, Semantics 2.0.1, Query/Projection 1.0.3,
+Evidence 1.0.2 and this adapter 2.2.0. `uv.lock` retains public artifact hashes;
+`conformance/postgresql/requirements.txt` declares the separate wheel test
+selection. Project and wheel evidence record their actual driver/package
+versions separately. Full immutable Usage/Cost consumer acceptance belongs to
+the downstream owning plugin tasks and final all-family closure, after the
+adapter release, to avoid a release cycle.

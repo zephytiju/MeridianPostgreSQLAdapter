@@ -42,7 +42,14 @@ Cluster tests are opt-in because they require one primary and at least two
 streaming standbys. The repository includes a disposable genuine-cluster runner:
 
 ```bash
-./scripts/run-cluster-conformance.sh
+uv build
+uv venv /tmp/meridian-postgresql-wheel
+uv pip install --python /tmp/meridian-postgresql-wheel/bin/python \
+  -c conformance/postgresql/requirements.txt dist/*.whl \
+  'meridian-storage-evidence>=1.0.1,<2' 'pytest>=8.3,<9'
+uv pip check --python /tmp/meridian-postgresql-wheel/bin/python
+MERIDIAN_POSTGRESQL_PYTHON=/tmp/meridian-postgresql-wheel/bin/python \
+  ./scripts/run-cluster-conformance.sh
 ```
 
 The CI cluster matrix runs that script with both recorded test images. A local
@@ -81,7 +88,7 @@ fingerprint verification before Core startup.
 
 `tests/integration/test_durable_outbox.py` imports the executable shared
 `run_outbox_conformance` fixtures from the exact PyPI release
-`meridian-storage-projection==1.0.2`. It supplies public Structured intent
+`meridian-storage-projection==1.0.3`. It supplies public Structured intent
 seeding, durable inspection and fresh-runtime reopen callbacks. The portable
 suite covers owner/expiry rejection, exact acknowledgements, checkpoint
 revision, retry/quarantine, redaction, ordering and same-owner characterization.
