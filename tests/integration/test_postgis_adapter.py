@@ -706,10 +706,17 @@ def test_migration_probe_physical_transfer_and_core_conformance(
         semantics.import_logical(exported)
 
     get = catalog.normalize(surface.get(resource="example.people", where={"id": person_id}))
+    observed_context = replace(
+        create_context,
+        binding=replace(
+            create_context.binding,
+            compatibility_pins={"observedEngineVersion": probe.observed_engine_version},
+        ),
+    )
     report = run_adapter_conformance(
         AdapterConformanceTarget(
             factory=PostgreSQLAdapterFactory(),
-            create_context=create_context,
+            create_context=observed_context,
             resources=physical_resources(settings),
             operation=get,
             context=operation_context,
@@ -721,6 +728,7 @@ def test_migration_probe_physical_transfer_and_core_conformance(
         )
     )
     assert "transaction-commit-rollback" in report.checks
+    assert report.observed_engine_version == probe.observed_engine_version
 
 
 def test_additive_migration_updates_existing_physical_layout(

@@ -355,11 +355,16 @@ def settings() -> PostgreSQLSettings:
 def make_binding(
     endpoint: str,
     *,
-    engine_profile: str = "postgresql-postgis-local-single-primary",
+    engine_profile: str | None = None,
     engine_version: str | None = None,
-    expected_standbys: int = 0,
+    expected_standbys: int | None = None,
     required_physical_fingerprint: str | None = None,
 ) -> tuple[BindingConfig, str, str]:
+    engine_profile = engine_profile or os.environ.get(
+        "MERIDIAN_POSTGRESQL_ENGINE_PROFILE", "postgresql-postgis-local-single-primary"
+    )
+    if expected_standbys is None:
+        expected_standbys = 2 if engine_profile.endswith("cluster") else 0
     selected_version = engine_version or selected_engine_version()
     parsed = conninfo_to_dict(endpoint)
     user = parsed.pop("user", "meridian")

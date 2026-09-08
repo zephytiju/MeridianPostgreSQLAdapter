@@ -1,6 +1,6 @@
 # Evidence conformance and upgrade
 
-The PostgreSQL Adapter supports the released Evidence append and query contracts with Core 1.0.1, Semantics 2.0.0, Query 1.0.2 and Evidence 1.0.1. The package and lock file declare the tested dependency set. Core 1.0.1 is required so its operation replay cache partitions identical keys by the full scope.
+Historical Evidence acceptance used Core 1.0.1, Semantics 2.0.0, Query 1.0.2 and Evidence 1.0.1. Core 1.0.1 introduced full-scope replay partitioning. Release 2.2.0 requires Core 1.1 for release/contract separation and records its newly resolved dependency closure in the build lock; the historical recipe is not an acceptance allowlist.
 
 ## Guarantees and composition
 

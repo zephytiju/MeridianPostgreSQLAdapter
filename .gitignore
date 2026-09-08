@@ -13,3 +13,7 @@ build/
 dist/
 htmlcov/
 .env
+
+*-tests.xml
+*-integration.xml
+*-provenance.json

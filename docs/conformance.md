@@ -26,7 +26,7 @@ MERIDIAN_POSTGRESQL_TEST_DSN='postgresql://meridian:meridian@127.0.0.1:55432/mer
 For PostgreSQL 17 + PostGIS 3.5, use image
 `postgis/postgis:17-3.5-alpine` and set
 `MERIDIAN_POSTGRESQL_ENGINE_VERSION=17-postgis-3.5`. CI runs the complete
-single-primary suite against both advertised version pins.
+single-primary suite against both recorded test selections.
 
 The integration suite applies the adapter-generated migration plan through the
 explicit migration hook and then verifies types, JSON, CAS races, transactional
@@ -45,7 +45,7 @@ streaming standbys. The repository includes a disposable genuine-cluster runner:
 ./scripts/run-cluster-conformance.sh
 ```
 
-The CI cluster matrix runs that script with both advertised images. A local
+The CI cluster matrix runs that script with both recorded test images. A local
 version override uses `MERIDIAN_POSTGRESQL_IMAGE` together with the matching
 `MERIDIAN_POSTGRESQL_ENGINE_VERSION`.
 
@@ -99,3 +99,9 @@ startup validation. No generation-token fencing is claimed.
 The PostgreSQL 16/17 CI jobs run this suite both with the project environment
 and with a clean installed candidate wheel. The subprocess crash host uses
 that same installed interpreter; it never imports sibling repositories.
+
+## Independent release selection
+
+See [the complete gate inventory](release-validation.md) for selected/observed
+provenance, unlisted metadata regression, retained negative checks, exact image
+selection, and public-release closure requirements.

@@ -12,6 +12,8 @@ from meridian_storage.spi.capabilities import (
 
 ADAPTER_ID = "postgresql"
 ADAPTER_CONTRACT_VERSION = "1.0.0"
+# Historical conformance metadata; keys remain the closed topology identities.
+# Values must never be used as runtime release membership predicates.
 ENGINE_VERSIONS = {
     "postgresql-postgis-local-single-primary": ("16-postgis-3.4", "17-postgis-3.5"),
     "postgresql-postgis-cluster": ("16-postgis-3.4", "17-postgis-3.5"),

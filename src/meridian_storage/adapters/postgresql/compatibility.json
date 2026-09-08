@@ -1,10 +1,10 @@
 {
   "formatVersion": "meridian.postgresql.compatibility.v1",
   "adapterId": "postgresql",
-  "packageVersion": "2.1.1",
+  "packageVersion": "2.2.0",
   "adapterContract": "1.0.0",
   "dependencies": {
-    "meridian-storage-core": "1.0.1",
+    "meridian-storage-core": "1.1.0",
     "meridian-storage-semantics": "2.0.0",
     "meridian-storage-query": "1.0.2",
     "meridian-storage-projection": "1.0.2"
@@ -13,8 +13,8 @@
     "meridianHld": 56,
     "catalogsAndPublicInterfaces": 124,
     "engineAdapters": 24,
-    "postgresqlPostgisLld": 40,
-    "meridianConstructsLld": 45
+    "postgresqlPostgisLld": 41,
+    "meridianConstructsLld": 112
   },
   "engineProfiles": {
     "postgresql-postgis-local-single-primary": [
@@ -28,5 +28,6 @@
   },
   "testedCatalogs": {
     "meridian-storage-evidence": "1.0.1"
-  }
+  },
+  "releaseMetadataPolicy": "dependencies and engineProfiles record a tested recipe, never an acceptance allowlist; deployment owns exact locks"
 }

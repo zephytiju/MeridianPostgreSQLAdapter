@@ -110,4 +110,23 @@ fi
 
 export MERIDIAN_POSTGRESQL_CLUSTER_DSN="postgresql://meridian:meridian@127.0.0.1:${primary_port}/meridian"
 export MERIDIAN_POSTGRESQL_CLUSTER_STANDBY_DSNS="postgresql://meridian:meridian@127.0.0.1:${standby_one_port}/meridian,postgresql://meridian:meridian@127.0.0.1:${standby_two_port}/meridian"
-uv run pytest -m cluster "$@"
+# An explicit interpreter allows the exact installed release wheel to use the
+# same cluster harness. Normal project CI retains its locked uv environment.
+run_tests() {
+  if [[ -n "${MERIDIAN_POSTGRESQL_PYTHON:-}" ]]; then
+    "${MERIDIAN_POSTGRESQL_PYTHON}" -m pytest "$@"
+  else
+    uv run pytest "$@"
+  fi
+}
+run_tests -m cluster --junitxml=cluster-tests.xml "$@"
+export MERIDIAN_POSTGRESQL_TEST_DSN="${MERIDIAN_POSTGRESQL_CLUSTER_DSN}"
+export MERIDIAN_POSTGRESQL_ENGINE_PROFILE=postgresql-postgis-cluster
+run_tests -m integration --junitxml=cluster-integration.xml
+if [[ -n "${MERIDIAN_POSTGRESQL_PYTHON:-}" ]]; then
+  "${MERIDIAN_POSTGRESQL_PYTHON}" scripts/record_conformance.py --image "${image}" \
+    --junit cluster-tests.xml --junit cluster-integration.xml --output cluster-provenance.json
+else
+  uv run python scripts/record_conformance.py --image "${image}" \
+    --junit cluster-tests.xml --junit cluster-integration.xml --output cluster-provenance.json
+fi
