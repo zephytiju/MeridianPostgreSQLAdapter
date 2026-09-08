@@ -44,8 +44,10 @@ def _operation_capability(method: str) -> OperationCapability:
         guarantees.extend(("conditional-mutation", "read-committed"))
     if method == "traverse":
         guarantees.extend(("bounded-traversal", "relation-collections"))
-    if method in {"create_resource", "publish_schema"}:
+    if method == "create_resource":
         guarantees.append("external-migration")
+    if method == "publish_schema":
+        guarantees.extend(("durable-metadata", "immutable-schema-version", "no-runtime-ddl"))
     return OperationCapability(
         operation_contract=f"meridian.structured.{method}",
         operation_versions=("2.0.0",) if method == "put" else ("1.0.0",),

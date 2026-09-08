@@ -9,14 +9,14 @@ from pathlib import Path
 def test_compatibility_ledger_is_packaged_and_exact() -> None:
     package = resources.files("meridian_storage.adapters.postgresql")
     compatibility = json.loads(package.joinpath("compatibility.json").read_text())
-    assert compatibility["packageVersion"] == "2.2.0"
+    assert compatibility["packageVersion"] == "2.3.0"
     assert compatibility["dependencies"] == {
         "meridian-storage-projection": "1.0.3",
         "meridian-storage-core": "1.1.0",
         "meridian-storage-query": "1.0.3",
-        "meridian-storage-semantics": "2.0.1",
+        "meridian-storage-semantics": "2.1.0",
     }
-    assert compatibility["designRevisions"]["postgresqlPostgisLld"] == 41
+    assert compatibility["designRevisions"]["postgresqlPostgisLld"] == 42
 
 
 def test_repository_has_apache_material_and_one_distribution() -> None:

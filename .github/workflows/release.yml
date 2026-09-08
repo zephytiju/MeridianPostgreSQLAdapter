@@ -7,7 +7,8 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
+  attestations: write
   id-token: write
 
 jobs:
@@ -18,10 +19,18 @@ jobs:
       SOURCE_DATE_EPOCH: "1787702400"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
       - run: uv sync --extra test --locked
+      - name: Verify released tag and main ancestry
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
+          uv run python -c 'import os, tomllib; from pathlib import Path; assert os.environ["RELEASE_TAG"] == "v" + tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]'
       - run: uv pip check --python .venv/bin/python
       - run: uv run ruff check .
       - run: uv run mypy
@@ -29,4 +38,21 @@ jobs:
       - run: uv run pytest tests/unit tests/contract tests/packaging
       - run: uv build
       - run: uv run twine check --strict dist/*
+      - name: Verify reproducibility and generate SBOM
+        run: |
+          uv build --out-dir "$RUNNER_TEMP/rebuilt"
+          cmp dist/*.whl "$RUNNER_TEMP"/rebuilt/*.whl
+          cmp dist/*.tar.gz "$RUNNER_TEMP"/rebuilt/*.tar.gz
+          mkdir release-evidence
+          cp dist/* release-evidence/
+          uv run python scripts/generate_sbom.py release-evidence
+      - name: Attest immutable release files
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: release-evidence/*
+      - name: Publish release files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" release-evidence/*
       - uses: pypa/gh-action-pypi-publish@release/v1

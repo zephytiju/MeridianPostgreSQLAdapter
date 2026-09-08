@@ -19,6 +19,7 @@ from .._settings import PostgreSQLSettings
 from ..query._sql import ident
 from ..query.dml import DMLCompiler, jsonable
 from ..schema import MigrationPlan
+from ..schema_registry import verify_schema_repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +64,7 @@ class MigrationExecutor:
                 if observed is not None and observed != expected_physical_fingerprint:
                     raise RuntimeError("physical fingerprint changed before migration")
             if existing is not None:
+                self._verify_registry(connection)
                 return MigrationEvidence(
                     plan.plan_fingerprint,
                     plan.physical_fingerprint,
@@ -73,6 +75,7 @@ class MigrationExecutor:
                     cast(sql.SQL | sql.Composed, statement.command),
                     statement.parameters,
                 )
+            self._verify_registry(connection)
             resource_table = ident(self.settings.physical_schema, "__meridian_resources")
             for ref, resource_fingerprint in plan.resource_fingerprints:
                 layout = self.settings.resources[ref]
@@ -100,6 +103,12 @@ class MigrationExecutor:
                 (plan.plan_fingerprint,),
             )
         return MigrationEvidence(plan.plan_fingerprint, plan.physical_fingerprint, True)
+
+    def _verify_registry(self, connection: Connection[Any]) -> None:
+        if any(
+            layout.profile == "metadata-registry" for layout in self.settings.resources.values()
+        ):
+            verify_schema_repository(connection, physical_namespace=self.settings.physical_schema)
 
     def _current_fingerprint(self, connection: Connection[Any]) -> str | None:
         table = ident(self.settings.physical_schema, "__meridian_resources")
@@ -143,6 +152,8 @@ class LogicalTransfer:
         scope_columns, scope_values = self._scope(tenant, scope)
         for ref in resources:
             layout = self.settings.resources[ref]
+            if layout.profile == "metadata-registry":
+                raise ValueError("Schema metadata requires SchemaAPI snapshot or Platform backup")
             projections: list[sql.Composable] = []
             for field in layout.fields:
                 column: sql.Composable = sql.Identifier(field.column)
@@ -195,6 +206,10 @@ class LogicalTransfer:
                 ):
                     raise ValueError("invalid Meridian logical export record")
                 layout = self.settings.resources[payload["resource"]]
+                if layout.profile == "metadata-registry":
+                    raise ValueError(
+                        "Schema metadata requires SchemaAPI publication or Platform restore"
+                    )
                 values = payload["values"]
                 if set(values) != {field.name for field in layout.fields}:
                     raise ValueError("logical import fields do not match the pinned layout")

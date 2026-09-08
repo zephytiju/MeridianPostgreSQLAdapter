@@ -2,6 +2,10 @@
 
 # Meridian PostgreSQL/PostGIS Adapter
 
+Version 2.3.0 adds durable metadata Schema publication/read through public
+Semantics APIs and `structured.publish_schema`. See [migration, rollback and
+validation guidance](docs/schema-registry.md). Physical DDL remains Platform-owned.
+
 `meridian-storage-postgresql` is the Meridian V1 adapter for PostgreSQL and
 PostGIS. It implements the released Core Adapter SPI and Query translation
 contract while keeping SQL, topology, credentials, connection pools, and
