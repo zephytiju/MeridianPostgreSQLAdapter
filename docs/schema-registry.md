@@ -29,6 +29,40 @@ identify different objects; do not compare them for equality.
 
 ## Deployment and migration
 
+PostgreSQL 2.3.1 exposes the deployment settings parser through the public package
+surface. Given a public Core `BindingConfig` loaded from released
+Constructs-generated configuration, Platform can compile and apply its plan
+without importing private Adapter modules:
+
+```python
+from meridian_storage.adapters.postgresql import (
+    MigrationExecutor, PostgreSQLSettings, SchemaCompiler,
+)
+
+settings = PostgreSQLSettings.from_binding(binding)
+plan = SchemaCompiler(settings).compile()
+with migration_connections() as connection:
+    evidence = MigrationExecutor(settings).apply(connection, plan)
+```
+
+Deployment then injects a repository into the engine-neutral Schema API. Its
+connection factory supplies a context manager for an authoritative PostgreSQL
+connection; these credentials and SQL-driver details stay in deployment wiring:
+
+```python
+from meridian_storage.adapters.postgresql import PostgreSQLSchemaRepository
+from meridian_storage.semantics import SchemaAPI, SemanticsSchemaProvider
+
+repository = PostgreSQLSchemaRepository(
+    connection_factory=runtime_connections,
+    physical_namespace=binding.physical_namespace,
+    context=authorized_operation_context,
+    catalogs=("structured",),
+)
+schemas = SchemaAPI(repository)
+live_provider = SemanticsSchemaProvider(repository)
+```
+
 For an injected repository, Platform runs the public
 `migrate_schema_repository(connection, physical_namespace=...)` hook once with
 migration credentials. `verify_schema_repository` is its read-only readiness

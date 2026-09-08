@@ -2,6 +2,7 @@
 """Meridian V1 PostgreSQL/PostGIS Adapter."""
 
 from ._runtime import PostgreSQLAdapterFactory, PostgreSQLAdapterRuntime
+from ._settings import PostgreSQLSettings
 from ._version import __version__
 from .descriptor import DESCRIPTOR, QUERY_CAPABILITIES
 from .migration import LogicalTransfer, MigrationExecutor, RecoveryHook
@@ -29,6 +30,7 @@ __all__ = [
     "PostgreSQLQueryTranslator",
     "PostgreSQLSchemaRepository",
     "PostgreSQLSemanticsAdapter",
+    "PostgreSQLSettings",
     "RecoveryHook",
     "SchemaCompiler",
     "__version__",
