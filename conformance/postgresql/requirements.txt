@@ -1,7 +1,7 @@
 # Exact conformance deployment selection; not runtime compatibility gates.
 meridian-storage-core==1.1.0
-meridian-storage-semantics==2.0.1
+meridian-storage-semantics==2.1.0
 meridian-storage-query==1.0.3
 meridian-storage-projection==1.0.3
 meridian-storage-evidence==1.0.2
-meridian-storage-postgresql==2.2.0
+meridian-storage-postgresql==2.3.0

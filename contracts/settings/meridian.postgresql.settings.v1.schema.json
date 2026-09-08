@@ -82,14 +82,23 @@
       "properties": {
         "ref": {"type": ["string", "object"]},
         "table": {"$ref": "#/$defs/identifier"},
-        "profile": {"enum": ["relational", "document", "key-value", "search", "geospatial", "time-series", "relation", "append-only-evidence"]},
+        "profile": {"enum": ["relational", "document", "key-value", "search", "geospatial", "time-series", "relation", "append-only-evidence", "metadata-registry"]},
         "schemaFingerprint": {"$ref": "#/$defs/fingerprint"},
         "resourceFingerprint": {"$ref": "#/$defs/fingerprint"},
-        "fields": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/field"}},
-        "identity": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "fields": {"type": "array", "items": {"$ref": "#/$defs/field"}},
+        "identity": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
         "indexes": {"type": "array", "items": {"$ref": "#/$defs/index"}},
         "relation": {"$ref": "#/$defs/relation"}
-      }
+      },
+      "allOf": [{
+        "if": {"properties": {"profile": {"const": "metadata-registry"}}},
+        "then": {"properties": {
+          "table": {"const": "__meridian_schema_registry"},
+          "fields": {"maxItems": 0}, "identity": {"maxItems": 0},
+          "indexes": {"maxItems": 0}, "relation": {"type": "null"}
+        }},
+        "else": {"properties": {"fields": {"minItems": 1}, "identity": {"minItems": 1}}}
+      }]
     }
   }
 }

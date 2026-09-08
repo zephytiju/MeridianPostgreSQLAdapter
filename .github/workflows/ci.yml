@@ -79,6 +79,15 @@ jobs:
           "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration --junitxml=wheel-integration.xml
           "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest conformance/postgresql --junitxml=projection-tests.xml
           "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/record_conformance.py --junit wheel-integration.xml --junit projection-tests.xml
+      - name: Verify wheel metadata after database restart
+        run: |
+          "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/schema_restart_acceptance.py write schema-restart.json
+          docker restart "${{ job.services.postgres.id }}"
+          for attempt in $(seq 1 30); do
+            docker exec "${{ job.services.postgres.id }}" pg_isready -U meridian -d meridian && break
+            sleep 1
+          done
+          "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/schema_restart_acceptance.py read schema-restart.json
       - run: uv run python scripts/record_conformance.py --junit postgresql-tests.xml --output postgresql-project-provenance.json
       - uses: actions/upload-artifact@v4
         with:
@@ -90,6 +99,7 @@ jobs:
             projection-tests.xml
             postgresql-provenance.json
             postgresql-project-provenance.json
+            schema-restart.json
 
   cluster:
     runs-on: ubuntu-latest
@@ -144,6 +154,12 @@ jobs:
       - run: uv pip check --python .venv/bin/python
       - run: uv build
       - run: uv run twine check --strict dist/*
+      - name: Verify reproducible distributions and inventory
+        run: |
+          uv build --out-dir "$RUNNER_TEMP/rebuilt"
+          cmp dist/*.whl "$RUNNER_TEMP"/rebuilt/*.whl
+          cmp dist/*.tar.gz "$RUNNER_TEMP"/rebuilt/*.tar.gz
+          uv run python scripts/generate_sbom.py dist
       - uses: actions/upload-artifact@v4
         with:
           name: meridian-storage-postgresql-dist

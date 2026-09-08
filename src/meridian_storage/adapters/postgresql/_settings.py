@@ -51,6 +51,8 @@ _RESERVED_TABLES = frozenset(
         "__meridian_evidence_replay",
         "__meridian_outbox_state",
         "__meridian_outbox_checkpoint",
+        "__meridian_schema_registry",
+        "__meridian_schema_registry_migration",
     }
 )
 _RESERVED_COLUMNS = frozenset(
@@ -268,6 +270,19 @@ class ResourceLayout:
     relation: RelationLayout | None = None
 
     def __post_init__(self) -> None:
+        if self.profile == "metadata-registry":
+            if (
+                self.ref.canonical != "structured:meridian.registry"
+                or self.table != "__meridian_schema_registry"
+                or self.fields
+                or self.identity
+                or self.indexes
+                or self.relation is not None
+            ):
+                raise ValueError(
+                    "metadata registry requires its fixed Resource/table and no data layout"
+                )
+            return
         field_names = {field.name for field in self.fields}
         columns = {field.column for field in self.fields}
         if len(field_names) != len(self.fields) or len(columns) != len(self.fields):
@@ -314,8 +329,7 @@ class ResourceLayout:
             if index.kind == "relation-endpoint" and (
                 len(index.fields) != 1
                 or self.relation is None
-                or index.fields[0]
-                not in {self.relation.source_field, self.relation.target_field}
+                or index.fields[0] not in {self.relation.source_field, self.relation.target_field}
             ):
                 raise ValueError(f"{self.ref}: relation endpoint index must select one endpoint")
         if self.ref.catalog == "structured" and self.profile not in _STRUCTURED_PROFILES:
@@ -339,9 +353,7 @@ class ResourceLayout:
                 self.field_map[self.relation.target_field],
             )
             if any(
-                field.logical_type != "recordRef"
-                or field.cardinality != "one"
-                or field.nullable
+                field.logical_type != "recordRef" or field.cardinality != "one" or field.nullable
                 for field in endpoints
             ):
                 raise ValueError(f"{self.ref}: relation endpoints must be non-null RecordRefs")

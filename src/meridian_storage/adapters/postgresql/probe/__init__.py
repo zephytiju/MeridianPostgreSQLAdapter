@@ -23,6 +23,7 @@ from ..descriptor import manifest
 from ..projection._storage import is_outbox, verify_storage
 from ..query._sql import ident
 from ..schema import _sql_type
+from ..schema_registry import MIGRATION_TABLE, verify_schema_repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -231,6 +232,12 @@ class ProbeService:
         connection: Connection[Any],
         layout: ResourceLayout,
     ) -> dict[str, object]:
+        if layout.profile == "metadata-registry":
+            fingerprint = verify_schema_repository(
+                connection,
+                physical_namespace=self.settings.physical_schema,
+            )
+            return {"resourceRef": layout.ref.canonical, "migrationFingerprint": fingerprint}
         with connection.cursor(row_factory=dict_row) as cursor:
             cursor.execute(
                 "SELECT a.attname AS name, format_type(a.atttypid, a.atttypmod) AS type, "
@@ -322,8 +329,20 @@ class ProbeService:
         if any(is_outbox(layout) for layout in self.settings.resources.values()):
             verify_storage(connection, self.settings.physical_schema)
         for layout in self.settings.resources.values():
+            selected_privileges = privileges
+            if layout.profile == "metadata-registry":
+                verify_schema_repository(
+                    connection, physical_namespace=self.settings.physical_schema
+                )
+                selected_privileges = ("SELECT", "INSERT", "UPDATE")
+                marker = f"{self.settings.physical_schema}.{MIGRATION_TABLE}"
+                row = connection.execute(
+                    "SELECT has_table_privilege(%s, 'SELECT') AS allowed", (marker,)
+                ).fetchone()
+                if not row or not row["allowed"]:
+                    raise RuntimeError("runtime identity lacks SELECT on registry migration marker")
             qualified = f"{self.settings.physical_schema}.{layout.table}"
-            for privilege in privileges:
+            for privilege in selected_privileges:
                 row = connection.execute(
                     "SELECT has_table_privilege(%s, %s) AS allowed",
                     (qualified, privilege),

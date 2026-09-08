@@ -25,7 +25,7 @@ from meridian_storage.query.wire import (
     SafetyBudget,
     TraversalSpec,
 )
-from meridian_storage.semantics import RecordReference, sha256_fingerprint
+from meridian_storage.semantics import RecordReference, SchemaDocument, sha256_fingerprint
 from meridian_storage.spi.adapters import ExecutionRequest
 
 from ._settings import PostgreSQLSettings
@@ -39,7 +39,14 @@ class QueryCommand:
     translator: PostgreSQLQueryTranslator
 
 
-type AdapterCommand = AppendBatchCommand | DMLCommand | QueryCommand
+@dataclass(frozen=True, slots=True)
+class MetadataPublishCommand:
+    document: SchemaDocument
+    expected_revision: int | None
+    allow_breaking: bool
+
+
+type AdapterCommand = AppendBatchCommand | DMLCommand | QueryCommand | MetadataPublishCommand
 
 
 class OperationCompiler:
@@ -82,7 +89,7 @@ class OperationCompiler:
             raise ValueError(f"{operation.operation_contract} requires Operation version {version}")
         if method == "put" and "queryPlan" in operation.input:
             raise ValueError("structured.put cannot contain a queryPlan")
-        if method in {"create_resource", "publish_schema"}:
+        if method == "create_resource":
             raise ValueError("physical DDL is only available through the Platform migration hook")
         if len(operation.resources) < 1:
             raise ValueError("PostgreSQL Operation requires a Resource")
@@ -94,6 +101,14 @@ class OperationCompiler:
             and len(operation.resources) != 1
         ):
             raise ValueError("non-traversal Operations require exactly one Resource")
+        if method == "publish_schema":
+            return self._publish_schema(request)
+        if any(
+            self.settings.layout(ref).profile == "metadata-registry" for ref in operation.resources
+        ):
+            raise ValueError(
+                "metadata registry only supports Schema publication; use SchemaAPI for reads"
+            )
         if (
             method in {"put", "get", "patch", "delete", "append"}
             and "queryPlan" not in operation.input
@@ -120,6 +135,39 @@ class OperationCompiler:
             deadline_ms=self._deadline_ms(request, query_operation.budget.deadline_ms),
         )
         return QueryCommand(self.translator.compile(query_operation, context), self.translator)
+
+    def _publish_schema(self, request: ExecutionRequest) -> MetadataPublishCommand:
+        operation = request.operation
+        self.dml._scope_values(request.context)
+        if (
+            operation.catalog != "structured"
+            or operation.read_only
+            or len(operation.resources) != 1
+            or operation.resources[0].canonical != "structured:meridian.registry"
+            or self.settings.layout(operation.resources[0]).profile != "metadata-registry"
+        ):
+            raise ValueError("Schema publication requires the pinned structured metadata registry")
+        values = operation.input
+        required = {"namespace", "name", "version", "definition", "allowBreaking"}
+        if required - set(values) or set(values) - (required | {"expectedRegistryRevision"}):
+            raise ValueError("Schema publication contains unknown or missing arguments")
+        if (
+            any(not isinstance(values[key], str) for key in ("namespace", "name", "version"))
+            or not isinstance(values["definition"], Mapping)
+            or type(values["allowBreaking"]) is not bool
+        ):
+            raise ValueError("Schema publication arguments have invalid types")
+        expected = values.get("expectedRegistryRevision")
+        if expected is not None and (type(expected) is not int or expected < 0):
+            raise ValueError("Schema expected revision must be a nonnegative integer")
+        document = SchemaDocument.from_definition(
+            catalog="structured",
+            namespace=cast(str, values["namespace"]),
+            name=cast(str, values["name"]),
+            version=cast(str, values["version"]),
+            definition=cast(Mapping[str, object], values["definition"]),
+        )
+        return MetadataPublishCommand(document, expected, values["allowBreaking"])
 
     def _query_operation(self, request: ExecutionRequest, method: str) -> QueryOperation:
         raw_plan = request.operation.input.get("queryPlan")

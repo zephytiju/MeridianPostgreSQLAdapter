@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Mapping
+from contextlib import nullcontext
 from threading import RLock
 from typing import Any, Protocol, cast
 
@@ -25,9 +26,10 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from .._errors import map_postgresql_error
-from .._operation import OperationCompiler, QueryCommand
+from .._operation import MetadataPublishCommand, OperationCompiler, QueryCommand
 from ..query._values import decode_query_value
 from ..query.dml import AppendBatchCommand, DMLCommand, jsonable
+from ..schema_registry import PostgreSQLSchemaRepository
 
 
 class _Pool(Protocol):
@@ -166,7 +168,24 @@ class PostgreSQLAdapterSession:
                 "SELECT set_config('statement_timeout', %s, true)",
                 (f"{timeout_ms}ms",),
             )
-            if isinstance(command, QueryCommand):
+            if isinstance(command, MetadataPublishCommand):
+                repository = PostgreSQLSchemaRepository(
+                    connection_factory=lambda: nullcontext(connection),
+                    physical_namespace=self._compiler.settings.physical_schema,
+                    context=request.context,
+                    operation_timeout_ms=timeout_ms,
+                )
+                result = repository.publish_schema(
+                    command.document,
+                    expected_revision=command.expected_revision,
+                    allow_breaking=command.allow_breaking,
+                )
+                data: Any = result.to_dict()
+                provenance = {
+                    "schemaFingerprint": result.publication.fingerprint,
+                    "registryRevision": str(result.registry_revision),
+                }
+            elif isinstance(command, QueryCommand):
                 data, provenance = self._execute_query(connection, command, request)
             elif isinstance(command, AppendBatchCommand) or command.method == "append":
                 data, provenance = self._execute_append(connection, command, request)

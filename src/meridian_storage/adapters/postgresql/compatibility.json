@@ -1,20 +1,20 @@
 {
   "formatVersion": "meridian.postgresql.compatibility.v1",
   "adapterId": "postgresql",
-  "packageVersion": "2.2.0",
+  "packageVersion": "2.3.0",
   "adapterContract": "1.0.0",
   "dependencies": {
     "meridian-storage-core": "1.1.0",
-    "meridian-storage-semantics": "2.0.1",
+    "meridian-storage-semantics": "2.1.0",
     "meridian-storage-query": "1.0.3",
     "meridian-storage-projection": "1.0.3"
   },
   "designRevisions": {
     "meridianHld": 56,
-    "catalogsAndPublicInterfaces": 124,
+    "catalogsAndPublicInterfaces": 126,
     "engineAdapters": 24,
-    "postgresqlPostgisLld": 41,
-    "meridianConstructsLld": 112
+    "postgresqlPostgisLld": 42,
+    "meridianConstructsLld": 113
   },
   "engineProfiles": {
     "postgresql-postgis-local-single-primary": [

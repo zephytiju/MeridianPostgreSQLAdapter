@@ -12,6 +12,7 @@ from psycopg import sql
 from .._settings import FieldLayout, PostgreSQLSettings, ResourceLayout
 from ..projection._storage import is_outbox, migration_statements, validate_layout
 from ..query._sql import BoundStatement, ident
+from ..schema_registry import schema_registry_migration_statements
 
 _INTERNAL_COLUMNS = frozenset(
     {
@@ -138,7 +139,12 @@ class SchemaCompiler:
                 validate_layout(layout)
             statements.extend(migration_statements(self.settings.physical_schema))
         for layout in self.settings.resources.values():
-            statements.extend(self._resource(layout))
+            if layout.profile == "metadata-registry":
+                statements.extend(
+                    schema_registry_migration_statements(self.settings.physical_schema)
+                )
+            else:
+                statements.extend(self._resource(layout))
         canonical = [statement.command.as_string(None) for statement in statements]
         payload = json.dumps(canonical, ensure_ascii=False, separators=(",", ":"))
         physical = "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -259,9 +265,7 @@ class SchemaCompiler:
             else:
                 prefix = sql.SQL("UNIQUE ") if index.unique else sql.SQL("")
                 method = sql.SQL("hash") if index.kind == "hash" else sql.SQL("btree")
-                selected = (
-                    (*scope, *indexed_columns) if index.kind != "hash" else indexed_columns
-                )
+                selected = (*scope, *indexed_columns) if index.kind != "hash" else indexed_columns
                 command = (
                     sql.SQL("CREATE ")
                     + prefix

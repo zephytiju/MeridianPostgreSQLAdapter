@@ -9,6 +9,11 @@ from .projection import PostgreSQLOutbox
 from .query import PostgreSQLQueryTranslator
 from .query.dml import DMLCompiler
 from .schema import MigrationPlan, SchemaCompiler
+from .schema_registry import (
+    PostgreSQLSchemaRepository,
+    migrate_schema_repository,
+    verify_schema_repository,
+)
 from .semantics import PostgreSQLSemanticsAdapter
 
 __all__ = [
@@ -22,8 +27,11 @@ __all__ = [
     "PostgreSQLAdapterRuntime",
     "PostgreSQLOutbox",
     "PostgreSQLQueryTranslator",
+    "PostgreSQLSchemaRepository",
     "PostgreSQLSemanticsAdapter",
     "RecoveryHook",
     "SchemaCompiler",
     "__version__",
+    "migrate_schema_repository",
+    "verify_schema_repository",
 ]
