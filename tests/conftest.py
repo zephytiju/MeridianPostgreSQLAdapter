@@ -446,7 +446,9 @@ def read_compatible_binding(endpoint: str = "host=localhost dbname=test") -> Bin
             for item in stored.requirements
         ),
     )
-    raw = sample_settings_mapping()
+    raw = sample_settings_mapping(
+        expected_standbys=binding.settings["topology"]["expectedStandbys"]
+    )
     raw["resources"] = [raw["resources"][0]]
     raw["resources"][0]["resourceFingerprint"] = reader.fingerprint
     raw["readCompatibility"] = {

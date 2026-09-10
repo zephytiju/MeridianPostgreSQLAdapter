@@ -47,6 +47,8 @@ readiness, and accepts a runtime identity with SELECT on the pinned data tables
 and metadata ledger plus database CONNECT and schema USAGE. Existing topology,
 TLS, isolation and feature probes remain in force. The adapter still requires the
 selected primary endpoint; this feature does not introduce replica routing.
+Cluster identities also need replication-statistics visibility for the existing
+streaming-standby readiness check, for example membership in `pg_read_all_stats`.
 
 Only read Operations (`get`, `query`, `aggregate`, `search`, `traverse`) marked
 read-only may compile. Put, patch, delete, append, claims, Schema publication,

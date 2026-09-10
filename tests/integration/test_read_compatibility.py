@@ -45,6 +45,8 @@ def test_compatible_reader_requires_only_select_and_preserves_physical_metadata(
                 sql.Identifier(role)
             )
         )
+        if reader_settings.expected_standbys:
+            owner.execute(sql.SQL("GRANT pg_read_all_stats TO {}").format(sql.Identifier(role)))
         owner.execute(
             sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
                 sql.Identifier(namespace), sql.Identifier(role)
