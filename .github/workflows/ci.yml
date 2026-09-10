@@ -79,6 +79,15 @@ jobs:
           "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest tests/integration --junitxml=wheel-integration.xml
           "$RUNNER_TEMP/evidence-wheel/bin/python" -m pytest conformance/postgresql --junitxml=projection-tests.xml
           "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/record_conformance.py --junit wheel-integration.xml --junit projection-tests.xml
+      - name: Verify released writer and read-only candidate compatibility
+        if: matrix.engine == 'pg16-postgis34'
+        run: |
+          uv venv "$RUNNER_TEMP/legacy-writer"
+          uv pip install --python "$RUNNER_TEMP/legacy-writer/bin/python" 'meridian-storage-postgresql==1.0.0' 'meridian-storage-core==1.0.0' 'meridian-storage-query==1.0.0' 'meridian-storage-semantics==1.0.0' 'pytest>=8.3,<9'
+          uv pip check --python "$RUNNER_TEMP/legacy-writer/bin/python"
+          "$RUNNER_TEMP/legacy-writer/bin/python" tests/integration/read_compatibility_host.py write read-compatibility-receipt.json
+          "$RUNNER_TEMP/evidence-wheel/bin/python" tests/integration/read_compatibility_host.py read read-compatibility-receipt.json
+          "$RUNNER_TEMP/legacy-writer/bin/python" tests/integration/read_compatibility_host.py restart-writer read-compatibility-receipt.json
       - name: Verify wheel metadata after database restart
         run: |
           "$RUNNER_TEMP/evidence-wheel/bin/python" scripts/schema_restart_acceptance.py write schema-restart.json
@@ -100,6 +109,7 @@ jobs:
             postgresql-provenance.json
             postgresql-project-provenance.json
             schema-restart.json
+            read-compatibility-receipt.json
 
   cluster:
     runs-on: ubuntu-latest

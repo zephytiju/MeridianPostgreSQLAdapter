@@ -109,7 +109,9 @@ class ProbeService:
         role = "standby" if recovery else "primary"
         if recovery:
             raise RuntimeError("the Adapter write endpoint must resolve to a primary")
-        if row["read_only"] != "off":
+        if self.settings.read_only and row["read_only"] != "on":
+            raise RuntimeError("read compatibility requires read-only transactions")
+        if not self.settings.read_only and row["read_only"] != "off":
             raise RuntimeError("the Adapter write endpoint must permit read-write transactions")
         if (
             self.settings.engine_profile.endswith("cluster")
@@ -145,6 +147,7 @@ class ProbeService:
             "serverMajor": server_major,
             "streamingStandbys": str(standbys),
             "tls": "enabled" if tls else "disabled",
+            "accessMode": "read-only" if self.settings.read_only else "read-write",
         }
         return AdapterProbe(
             manifest(self.settings.engine_profile, self.engine_version),
@@ -188,10 +191,13 @@ class ProbeService:
             if not exists or not exists["present"]:
                 raise RuntimeError(f"physical table is absent for {canonical}")
             physical_shapes.append(self._verify_table_shape(connection, layout))
+            proof = self.settings.read_compatibility.get(canonical)
+            stored_fingerprint = (
+                layout.resource_fingerprint if proof is None else proof.stored_resource.fingerprint
+            )
             checks = {
-                "resource fingerprint": str(row["resource_fingerprint"])
-                == expected.resource_fingerprint
-                == layout.resource_fingerprint,
+                "resource fingerprint": str(row["resource_fingerprint"]) == stored_fingerprint
+                and expected.resource_fingerprint == layout.resource_fingerprint,
                 "Schema fingerprint": str(row["schema_fingerprint"])
                 == expected.schema_fingerprint
                 == layout.schema_fingerprint,
@@ -224,6 +230,7 @@ class ProbeService:
                 "resourceCount": str(len(rows)),
                 "stateFingerprint": state_fingerprint,
                 "verification": "read-only",
+                "readCompatibility": "structured.put.v1-v2" if self.settings.read_only else "none",
             },
         )
 
@@ -329,7 +336,7 @@ class ProbeService:
         if any(is_outbox(layout) for layout in self.settings.resources.values()):
             verify_storage(connection, self.settings.physical_schema)
         for layout in self.settings.resources.values():
-            selected_privileges = privileges
+            selected_privileges = ("SELECT",) if self.settings.read_only else privileges
             if layout.profile == "metadata-registry":
                 verify_schema_repository(
                     connection, physical_namespace=self.settings.physical_schema

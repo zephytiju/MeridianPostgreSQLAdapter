@@ -103,6 +103,7 @@ class PostgreSQLSemanticsAdapter:
         current_schema: SchemaDocument | None,
         target_schema: SchemaDocument,
     ) -> ActivationPlan:
+        self.settings.require_writable()
         self.validate_definition(target_schema, resource)
         if resource.active_schema_ref != target_schema.ref:
             raise ValueError("Collection active Schema does not match the activation target")
@@ -135,6 +136,7 @@ class PostgreSQLSemanticsAdapter:
         )
 
     def apply_activation(self, plan: ActivationPlan) -> ActivationResult:
+        self.settings.require_writable()
         layout = self.settings.layout(plan.resource_ref.to_core())
         physical = SchemaCompiler(self.settings).compile()
         expected_metadata: Mapping[str, FrozenJson] = {
@@ -232,6 +234,7 @@ class PostgreSQLSemanticsAdapter:
         return payload
 
     def import_logical(self, payload: Mapping[str, object]) -> None:
+        self.settings.require_writable()
         if set(payload) != {"formatVersion", "registryRevision", "resources", "records"}:
             raise ValueError("logical import envelope contains unknown or missing fields")
         if payload["formatVersion"] != _EXPORT_FORMAT:

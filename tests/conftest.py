@@ -10,6 +10,12 @@ from typing import Any
 
 import pytest
 from meridian_storage.context import OperationContext
+from meridian_storage.registry.resources import (
+    CapabilityRequirement,
+    ResourceDefinition,
+    ResourceRef,
+    SchemaRef,
+)
 from meridian_storage.runtime.config import (
     BindingConfig,
     ClientPolicy,
@@ -417,6 +423,37 @@ def make_create_context(endpoint: str) -> tuple[AdapterCreateContext, PostgreSQL
         settings,
         plan,
     )
+
+
+def read_compatible_binding(endpoint: str = "host=localhost dbname=test") -> BindingConfig:
+    binding, _, _ = make_binding(endpoint)
+    stored = ResourceDefinition(
+        ref=ResourceRef.parse("structured:example.people"),
+        profile="relational",
+        schema=SchemaRef("structured", "example", "person", "1.0.0"),
+        required_scope=("workspace",),
+        requirements=tuple(
+            CapabilityRequirement(f"meridian.structured.{method}", "1.0.0")
+            for method in ("get", "put", "query")
+        ),
+    )
+    reader = replace(
+        stored,
+        requirements=tuple(
+            replace(item, operation_version="2.0.0")
+            if item.operation_contract.endswith(".put")
+            else item
+            for item in stored.requirements
+        ),
+    )
+    raw = sample_settings_mapping()
+    raw["resources"] = [raw["resources"][0]]
+    raw["resources"][0]["resourceFingerprint"] = reader.fingerprint
+    raw["readCompatibility"] = {
+        "formatVersion": "meridian.postgresql.read-compatibility.v1",
+        "resources": [{"storedResource": stored.to_dict(), "readerResource": reader.to_dict()}],
+    }
+    return replace(binding, settings=raw, required_physical_fingerprint=fp("stored-plan"))
 
 
 @pytest.fixture(scope="session")

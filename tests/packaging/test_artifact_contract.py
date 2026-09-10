@@ -9,7 +9,7 @@ from pathlib import Path
 def test_compatibility_ledger_is_packaged_and_exact() -> None:
     package = resources.files("meridian_storage.adapters.postgresql")
     compatibility = json.loads(package.joinpath("compatibility.json").read_text())
-    assert compatibility["packageVersion"] == "2.3.1"
+    assert compatibility["packageVersion"] == "2.4.0"
     assert compatibility["dependencies"] == {
         "meridian-storage-projection": "1.0.3",
         "meridian-storage-core": "1.1.0",

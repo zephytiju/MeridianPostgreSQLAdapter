@@ -2,6 +2,11 @@
 
 # Meridian PostgreSQL/PostGIS Adapter
 
+Version 2.4.0 adds explicit [read-only compatibility](docs/read-compatibility.md)
+for stored ResourceDefinitions whose sole reader difference is the
+`structured.put` 1.0.0 to 2.0.0 requirement. It preserves exact schema, physical,
+scope, and resource fingerprint verification without modifying the older store.
+
 Version 2.3.0 adds durable metadata Schema publication/read through public
 Semantics APIs and `structured.publish_schema`. See [migration, rollback and
 validation guidance](docs/schema-registry.md). Physical DDL remains Platform-owned.
