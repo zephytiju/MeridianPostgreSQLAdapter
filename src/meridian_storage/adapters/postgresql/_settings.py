@@ -5,11 +5,16 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any, cast
 
-from meridian_storage.registry.resources import ResourceRef
+from meridian_storage.registry.resources import (
+    CapabilityRequirement,
+    ResourceDefinition,
+    ResourceRef,
+    SchemaRef,
+)
 
 _IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
 _FINGERPRINT = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -410,6 +415,98 @@ class ResourceLayout:
         return MappingProxyType({field.name: field for field in self.fields})
 
 
+def _plain_json(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {key: _plain_json(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_plain_json(item) for item in value]
+    return value
+
+
+def _resource_definition(value: object, path: str) -> ResourceDefinition:
+    """Parse the exact public Core serialization; never accept opaque hash aliases."""
+    item = _closed(
+        value,
+        path,
+        required=frozenset(
+            {
+                "formatVersion",
+                "ref",
+                "profile",
+                "schema",
+                "labels",
+                "requirements",
+                "requiredScope",
+                "relatedResources",
+                "extensions",
+            }
+        ),
+    )
+    resource = ResourceDefinition(
+        ref=ResourceRef.parse(_mapping(item["ref"], f"{path}.ref")),
+        profile=cast(str, item["profile"]),
+        schema=None
+        if item["schema"] is None
+        else SchemaRef.parse(_mapping(item["schema"], f"{path}.schema")),
+        labels=cast(Mapping[str, str], _mapping(item["labels"], f"{path}.labels")),
+        requirements=tuple(
+            CapabilityRequirement.from_mapping(_mapping(entry, f"{path}.requirements[]"))
+            for entry in _sequence(item["requirements"], f"{path}.requirements")
+        ),
+        required_scope=cast(
+            tuple[str, ...], tuple(_sequence(item["requiredScope"], f"{path}.requiredScope"))
+        ),
+        related_resources=tuple(
+            ResourceRef.parse(_mapping(entry, f"{path}.relatedResources[]"))
+            for entry in _sequence(item["relatedResources"], f"{path}.relatedResources")
+        ),
+        extensions=cast(Any, _mapping(item["extensions"], f"{path}.extensions")),
+    )
+    if resource.to_dict() != _plain_json(item):
+        raise ValueError(f"{path} must use the canonical ResourceDefinition serialization")
+    return resource
+
+
+@dataclass(frozen=True, slots=True)
+class ReadCompatibility:
+    stored_resource: ResourceDefinition
+    reader_resource: ResourceDefinition
+
+    def __post_init__(self) -> None:
+        stored = self.stored_resource
+        if stored.ref.catalog != "structured" or stored.profile not in _STRUCTURED_PROFILES:
+            raise ValueError("read compatibility requires a structured data Resource")
+        put = next(
+            (
+                item
+                for item in stored.requirements
+                if item.operation_contract == "meridian.structured.put"
+            ),
+            None,
+        )
+        if put is None or put.operation_version != "1.0.0":
+            raise ValueError("read compatibility requires stored structured.put 1.0.0")
+        expected = replace(
+            stored,
+            requirements=tuple(
+                replace(item, operation_version="2.0.0") if item is put else item
+                for item in stored.requirements
+            ),
+        )
+        # Core's canonical hash preserves JSON type distinctions (True != 1),
+        # unlike Python mapping equality.
+        if expected.fingerprint != self.reader_resource.fingerprint:
+            raise ValueError("read compatibility permits only structured.put 1.0.0 to 2.0.0")
+
+    @classmethod
+    def from_mapping(cls, value: object, path: str) -> ReadCompatibility:
+        item = _closed(value, path, required=frozenset({"storedResource", "readerResource"}))
+        return cls(
+            _resource_definition(item["storedResource"], f"{path}.storedResource"),
+            _resource_definition(item["readerResource"], f"{path}.readerResource"),
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class PostgreSQLSettings:
     physical_schema: str
@@ -419,6 +516,17 @@ class PostgreSQLSettings:
     application_name: str = "meridian-storage-postgresql"
     expected_standbys: int = 0
     require_tls: bool = False
+    read_compatibility: Mapping[str, ReadCompatibility] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
+    @property
+    def read_only(self) -> bool:
+        return bool(self.read_compatibility)
+
+    def require_writable(self) -> None:
+        if self.read_only:
+            raise ValueError("read compatibility Binding is read-only")
 
     @classmethod
     def from_binding(cls, binding: Any) -> PostgreSQLSettings:
@@ -428,7 +536,7 @@ class PostgreSQLSettings:
             binding.settings,
             "binding.settings",
             required=frozenset({"formatVersion", "scopeKeys", "resources", "topology"}),
-            optional=frozenset({"applicationName"}),
+            optional=frozenset({"applicationName", "readCompatibility"}),
         )
         if raw["formatVersion"] != "meridian.postgresql.settings.v1":
             raise ValueError("binding.settings.formatVersion is unsupported")
@@ -448,6 +556,34 @@ class PostgreSQLSettings:
             raise ValueError("resource layouts must be non-empty and unique")
         if len({layout.table for layout in layouts}) != len(layouts):
             raise ValueError("resource layouts must use unique physical tables")
+        compatibility: dict[str, ReadCompatibility] = {}
+        if "readCompatibility" in raw:
+            fingerprint(
+                binding.required_physical_fingerprint, "binding.requiredPhysicalFingerprint"
+            )
+            selected = _closed(
+                raw["readCompatibility"],
+                "binding.settings.readCompatibility",
+                required=frozenset({"formatVersion", "resources"}),
+            )
+            if selected["formatVersion"] != "meridian.postgresql.read-compatibility.v1":
+                raise ValueError("readCompatibility.formatVersion is unsupported")
+            for entry in _sequence(selected["resources"], "readCompatibility.resources"):
+                proof = ReadCompatibility.from_mapping(entry, "readCompatibility.resources[]")
+                ref = proof.reader_resource.ref.canonical
+                if ref in compatibility:
+                    raise ValueError("read compatibility Resources must be unique")
+                compatibility[ref] = proof
+            if set(compatibility) != {layout.ref.canonical for layout in layouts}:
+                raise ValueError("read compatibility must cover exactly every Binding Resource")
+            for layout in layouts:
+                reader = compatibility[layout.ref.canonical].reader_resource
+                if (
+                    reader.fingerprint != layout.resource_fingerprint
+                    or reader.profile != layout.profile
+                    or not set(reader.required_scope) <= set(scope_keys)
+                ):
+                    raise ValueError("read compatibility differs from the pinned layout or scope")
         topology = _closed(
             raw["topology"],
             "binding.settings.topology",
@@ -480,6 +616,7 @@ class PostgreSQLSettings:
             application_name=application_name,
             expected_standbys=expected,
             require_tls=binding.tls.mode != "disabled",
+            read_compatibility=MappingProxyType(compatibility),
         )
 
     def layout(self, ref: ResourceRef | str) -> ResourceLayout:

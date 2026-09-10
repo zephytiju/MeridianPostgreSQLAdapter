@@ -10,6 +10,7 @@ import os
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
+from functools import partial
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from threading import RLock
@@ -42,9 +43,11 @@ from .semantics import PostgreSQLSemanticsAdapter
 from .transactions import PostgreSQLAdapterSession
 
 
-def _configure_connection(connection: Connection[Any]) -> None:
+def _configure_connection(connection: Connection[Any], *, read_only: bool = False) -> None:
     connection.execute("SET TIME ZONE 'UTC'")
     connection.execute("SET default_transaction_isolation TO 'read committed'")
+    if read_only:
+        connection.execute("SET default_transaction_read_only TO on")
     connection.commit()
 
 
@@ -86,7 +89,7 @@ class PostgreSQLAdapterRuntime:
                 timeout=client.acquire_timeout_ms / 1000,
                 max_idle=client.idle_timeout_ms / 1000,
                 kwargs={"autocommit": False, "row_factory": dict_row},
-                configure=_configure_connection,
+                configure=partial(_configure_connection, read_only=self.settings.read_only),
                 check=ConnectionPool.check_connection,
                 open=False,
                 name=f"meridian-{self._context.binding.id}",

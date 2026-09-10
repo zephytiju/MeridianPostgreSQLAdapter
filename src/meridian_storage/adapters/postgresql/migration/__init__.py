@@ -42,6 +42,7 @@ class MigrationExecutor:
         *,
         expected_physical_fingerprint: str | None = None,
     ) -> MigrationEvidence:
+        self.settings.require_writable()
         lock_key = f"meridian:{self.settings.physical_schema}:migration"
         with connection.transaction():
             connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (lock_key,))
@@ -195,6 +196,7 @@ class LogicalTransfer:
         tenant: str,
         scope: Mapping[str, str],
     ) -> int:
+        self.settings.require_writable()
         scope_columns, scope_values = self._scope(tenant, scope)
         count = 0
         encoder = DMLCompiler(self.settings)

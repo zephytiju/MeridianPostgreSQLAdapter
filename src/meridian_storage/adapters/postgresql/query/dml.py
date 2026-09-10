@@ -43,6 +43,8 @@ class DMLCompiler:
         input_value: Mapping[str, object],
         context: OperationContext,
     ) -> DMLCommand | AppendBatchCommand:
+        if method != "get":
+            self.settings.require_writable()
         layout = self.settings.layout(resource)
         if method == "put":
             return self._put(layout, input_value, context)
@@ -109,6 +111,7 @@ class DMLCompiler:
     ) -> DMLCommand:
         """Compile a bounded claim using ``FOR UPDATE SKIP LOCKED``."""
 
+        self.settings.require_writable()
         if isinstance(limit, bool) or not 1 <= limit <= 500:
             raise ValueError("atomic claim limit must be between 1 and 500")
         layout = self.settings.layout(resource)

@@ -121,6 +121,7 @@ class SchemaCompiler:
         self.settings = settings
 
     def compile(self) -> MigrationPlan:
+        self.settings.require_writable()
         statements: list[BoundStatement] = [
             BoundStatement(sql.SQL("CREATE EXTENSION IF NOT EXISTS postgis")),
             BoundStatement(

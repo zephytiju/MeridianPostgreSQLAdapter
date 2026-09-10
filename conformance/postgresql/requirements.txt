@@ -4,4 +4,4 @@ meridian-storage-semantics==2.1.0
 meridian-storage-query==1.0.3
 meridian-storage-projection==1.0.3
 meridian-storage-evidence==1.0.2
-meridian-storage-postgresql==2.3.1
+meridian-storage-postgresql==2.4.0

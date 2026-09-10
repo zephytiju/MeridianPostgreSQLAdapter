@@ -67,6 +67,11 @@ class OperationCompiler:
         if not operation.operation_contract.startswith(prefix):
             raise ValueError("Operation contract does not match its Catalog")
         method = operation.operation_contract.removeprefix(prefix)
+        if self.settings.read_only and (
+            not operation.read_only
+            or method not in {"get", "query", "aggregate", "search", "traverse"}
+        ):
+            self.settings.require_writable()
         allowed = {
             "structured": {
                 "aggregate",
