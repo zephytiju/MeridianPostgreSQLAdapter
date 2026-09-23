@@ -583,11 +583,11 @@ wheels = [
 
 [[package]]
 name = "meridian-storage-core"
-version = "1.1.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fd/c5/f429ffd7682ace9656bbfef07170d94109ee9fce61d793a5dc3392435631/meridian_storage_core-1.1.0.tar.gz", hash = "sha256:46f7b64b706112dad0b62f768bfaf8b05f22d73d87f77702a0b3f7fd61544ca7", size = 113951, upload-time = "2026-09-07T23:50:05.333Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fc/ab/4ab4d94d391b35d5dd531091d03625af0cc37731f6dcce8817ce9a4e88c8/meridian_storage_core-1.2.0.tar.gz", hash = "sha256:dfec76901b99c6ba94428bec0ef4e3520ee873dff2d33d2ab18be15fbd6fd620", size = 733952, upload-time = "2026-09-23T20:36:41.272Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/ab/eaeab612cacaef7a1ec798811a345f0e0934b4f7224c903c95a7550f8514/meridian_storage_core-1.1.0-py3-none-any.whl", hash = "sha256:fc7372a17993f43ec285e3d52c0e9c458ef8e6f5ce13bb2d1b01b064aa8eff49", size = 80344, upload-time = "2026-09-07T23:50:03.813Z" },
+    { url = "https://files.pythonhosted.org/packages/58/e6/15d546de7ecfd7a04fec21b5821c9defef667f9a87b407a03e4a5a4e39d1/meridian_storage_core-1.2.0-py3-none-any.whl", hash = "sha256:22e3cd77fa39972a8686e5c25f6dd469ad6a303261ab32c298c0ac12bdac6034", size = 81733, upload-time = "2026-09-23T20:36:39.941Z" },
 ]
 
 [[package]]
@@ -605,7 +605,7 @@ wheels = [
 
 [[package]]
 name = "meridian-storage-postgresql"
-version = "2.4.0"
+version = "2.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "meridian-storage-core" },
@@ -630,7 +630,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "build", marker = "extra == 'test'", specifier = ">=1.2.2,<2" },
-    { name = "meridian-storage-core", specifier = ">=1.1.0,<2" },
+    { name = "meridian-storage-core", specifier = ">=1.2.0,<2" },
     { name = "meridian-storage-evidence", marker = "extra == 'test'", specifier = ">=1.0.1,<2" },
     { name = "meridian-storage-projection", specifier = ">=1.0.2,<2" },
     { name = "meridian-storage-query", specifier = ">=1.0.2,<2" },

@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import Mapping
-from contextlib import nullcontext
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager, nullcontext, suppress
 from threading import RLock
 from typing import Any, Protocol, cast
 
+from meridian_storage.context import OperationContext, current_context
 from meridian_storage.errors import (
+    CommitOutcomeError,
+    CommitState,
     ConflictError,
     ErrorCode,
     MeridianError,
@@ -21,10 +24,12 @@ from meridian_storage.errors import (
 from meridian_storage.semantics import sha256_fingerprint
 from meridian_storage.spi.adapters import ExecutionRequest, ExecutionResult
 from psycopg import Connection, sql
+from psycopg.pq import TransactionStatus
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
-from psycopg_pool import ConnectionPool
+from psycopg_pool import ConnectionPool, PoolTimeout
 
+from .._deadline import OperationBudget, bounded_io
 from .._errors import map_postgresql_error
 from .._operation import MetadataPublishCommand, OperationCompiler, QueryCommand
 from ..query._values import decode_query_value
@@ -61,26 +66,62 @@ class PostgreSQLAdapterSession:
         self._begun = False
         self._closed = False
         self._lock = RLock()
+        self._budget: OperationBudget | None = None
+        self.commit_state = CommitState.KNOWN_NOT_COMMITTED
+
+    def _get_budget(self, context: OperationContext | None = None) -> OperationBudget:
+        if self._budget is None:
+            self._budget = OperationBudget(self._operation_timeout_ms / 1000, context)
+        self._budget.include(context or current_context(required=False))
+        return self._budget
+
+    @contextmanager
+    def _guard(self, context: OperationContext | None = None) -> Iterator[OperationBudget]:
+        budget = self._get_budget(context)
+        if not self._lock.acquire(timeout=budget.remaining()):
+            raise MeridianTimeoutError(ErrorCode.DEADLINE_EXCEEDED, "session admission expired")
+        try:
+            with bounded_io(budget):
+                budget.remaining()
+                yield budget
+        finally:
+            self._lock.release()
+
+    def _acquire_begin(self, budget: OperationBudget) -> None:
+        # The pool's connection check also runs inside bounded_io.
+        acquire_end = time.monotonic() + min(self._acquire_timeout, budget.remaining())
+        while True:
+            left = min(acquire_end - time.monotonic(), budget.remaining())
+            if left <= 0:
+                raise MeridianTimeoutError(ErrorCode.DEADLINE_EXCEEDED, "pool acquisition expired")
+            try:
+                connection = self._pool.getconn(timeout=min(left, 0.05))
+                break
+            except PoolTimeout:
+                continue
+        self._connection = connection
+        try:
+            budget.remaining()
+            connection.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+            budget.remaining()
+            self._begun = True
+        except BaseException:
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise
 
     def begin(self) -> None:
-        with self._lock:
+        with self._guard() as budget:
             self._require_open()
             if not self._transactional or self._begun:
                 raise TransactionError(
                     ErrorCode.TRANSACTION_STATE,
                     "begin requires a new transactional Adapter session",
                 )
-            connection = self._pool.getconn(timeout=self._acquire_timeout)
-            try:
-                connection.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
-            except Exception:
-                self._pool.putconn(connection)
-                raise
-            self._connection = connection
-            self._begun = True
+            self._acquire_begin(budget)
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:
-        with self._lock:
+        with self._guard(request.context) as budget:
             self._require_open()
             if self._transactional and not self._begun:
                 raise TransactionError(
@@ -90,49 +131,117 @@ class PostgreSQLAdapterSession:
             if self._transactional:
                 assert self._connection is not None
                 return self._execute(self._connection, request)
-            connection = self._pool.getconn(timeout=self._acquire_timeout)
+            self._acquire_begin(budget)
             try:
-                with connection.transaction():
-                    return self._execute(connection, request)
-            finally:
-                self._pool.putconn(connection)
+                assert self._connection is not None
+                result = self._execute(self._connection, request)
+                self._commit(budget)
+                return result
+            except BaseException:
+                with suppress(BaseException):
+                    self._release(discard=True)
+                raise
+
+    def _release(self, *, discard: bool = False) -> None:
+        connection, self._connection = self._connection, None
+        self._begun = False
+        if connection is None:
+            return
+        # Closed connections cannot cause pool rollback/check I/O. No consumer
+        # SQL is needed to quarantine a failed/expired transaction.
+        if discard:
+            close = getattr(connection, "close", None)
+            if close is not None:
+                close()
+        self._pool.putconn(connection)
+
+    def _commit(self, budget: OperationBudget) -> None:
+        try:
+            budget.remaining()
+        except MeridianTimeoutError as exc:
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise CommitOutcomeError(
+                CommitState.KNOWN_NOT_COMMITTED, "deadline expired before commit dispatch"
+            ) from exc
+        assert self._connection is not None
+        if (
+            getattr(getattr(self._connection, "info", None), "transaction_status", None)
+            == TransactionStatus.INERROR
+        ):
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise CommitOutcomeError(
+                CommitState.KNOWN_NOT_COMMITTED, "transaction is aborted; commit was not dispatched"
+            )
+        self.commit_state = CommitState.UNKNOWN_COMMIT
+        try:
+            self._connection.commit()
+        except BaseException as exc:
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise CommitOutcomeError(
+                CommitState.UNKNOWN_COMMIT,
+                "commit acknowledgement unavailable; reconcile before effects",
+            ) from exc
+        self.commit_state = CommitState.KNOWN_COMMITTED
+        try:
+            budget.remaining()
+        except MeridianTimeoutError as exc:
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise CommitOutcomeError(
+                CommitState.KNOWN_COMMITTED,
+                "commit acknowledged after deadline; no further effects",
+            ) from exc
+        try:
+            self._release()
+        except BaseException as exc:
+            raise CommitOutcomeError(
+                CommitState.KNOWN_COMMITTED, "commit acknowledged; cleanup failed"
+            ) from exc
 
     def commit(self) -> None:
-        with self._lock:
-            self._require_transaction()
-            assert self._connection is not None
-            connection = self._connection
-            try:
-                connection.commit()
-            finally:
-                self._connection = None
-                self._begun = False
-                self._pool.putconn(connection)
+        try:
+            with self._guard() as budget:
+                self._require_transaction()
+                self._commit(budget)
+        except MeridianTimeoutError as exc:
+            if isinstance(exc, CommitOutcomeError):
+                raise
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise CommitOutcomeError(
+                self.commit_state, "commit admission expired or cancelled"
+            ) from exc
 
     def rollback(self) -> None:
-        with self._lock:
-            self._require_transaction()
-            assert self._connection is not None
-            connection = self._connection
-            try:
-                connection.rollback()
-            finally:
-                self._connection = None
-                self._begun = False
-                self._pool.putconn(connection)
+        try:
+            with self._guard():
+                self._require_transaction()
+                assert self._connection is not None
+                self._connection.rollback()
+                self._release()
+        except BaseException:
+            with suppress(BaseException):
+                self._release(discard=True)
+            raise
 
     def close(self) -> None:
-        with self._lock:
-            if self._closed:
-                return
+        if self._closed:
+            return
+        try:
             if self._connection is not None:
-                connection = self._connection
                 try:
-                    connection.rollback()
-                finally:
-                    self._pool.putconn(connection)
-            self._connection = None
-            self._begun = False
+                    with self._guard():
+                        self._connection.rollback()
+                        self._release()
+                except MeridianTimeoutError:
+                    self._release(discard=True)
+                except BaseException:
+                    self._release(discard=True)
+                    raise
+        finally:
             self._closed = True
 
     def _execute(

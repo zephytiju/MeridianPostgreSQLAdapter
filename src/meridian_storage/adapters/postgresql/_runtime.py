@@ -16,11 +16,13 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
+from meridian_storage.context import current_context
 from meridian_storage.errors import (
     CompatibilityError,
     ConfigurationError,
     ErrorCode,
     LifecycleError,
+    MeridianTimeoutError,
 )
 from meridian_storage.query.cursor import CursorSigner
 from meridian_storage.spi.adapters import (
@@ -34,6 +36,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+from ._deadline import DeadlineConnection
 from ._operation import OperationCompiler
 from ._settings import PostgreSQLSettings
 from .descriptor import ADAPTER_CONTRACT_VERSION, ADAPTER_ID, ENGINE_VERSIONS, manifest
@@ -84,13 +87,14 @@ class PostgreSQLAdapterRuntime:
             client = self._context.binding.client
             pool: ConnectionPool[Connection[Any]] = ConnectionPool(
                 conninfo=self._conninfo,
+                connection_class=DeadlineConnection,
                 min_size=client.min_size,
                 max_size=client.max_size,
                 timeout=client.acquire_timeout_ms / 1000,
                 max_idle=client.idle_timeout_ms / 1000,
                 kwargs={"autocommit": False, "row_factory": dict_row},
                 configure=partial(_configure_connection, read_only=self.settings.read_only),
-                check=ConnectionPool.check_connection,
+                # Health-check I/O belongs to the budgeted session, not getconn.
                 open=False,
                 name=f"meridian-{self._context.binding.id}",
             )
@@ -146,7 +150,16 @@ class PostgreSQLAdapterRuntime:
             self._closed = True
 
     def _require_pool(self) -> ConnectionPool[Connection[Any]]:
-        with self._lock:
+        context = current_context(required=False)
+        remaining = None if context is None else context.remaining_seconds()
+        acquired = (
+            self._lock.acquire() if remaining is None else self._lock.acquire(timeout=remaining)
+        )
+        if not acquired:
+            raise MeridianTimeoutError(ErrorCode.DEADLINE_EXCEEDED, "runtime admission expired")
+        try:
+            if context is not None:
+                context.check_budget()
             if self._closed:
                 raise LifecycleError(ErrorCode.RUNTIME_CLOSED, "PostgreSQL Adapter is closed")
             if not self._opened or self._pool is None:
@@ -155,6 +168,8 @@ class PostgreSQLAdapterRuntime:
                     "PostgreSQL Adapter must be opened before use",
                 )
             return self._pool
+        finally:
+            self._lock.release()
 
     @contextmanager
     def _semantics_connection(self) -> Iterator[Connection[Any]]:

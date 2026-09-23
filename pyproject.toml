@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "meridian-storage-postgresql"
-version = "2.4.0"
+version = "2.5.0"
 description = "PostgreSQL and PostGIS adapter for Meridian V1"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -24,7 +24,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "meridian-storage-core>=1.1.0,<2",
+  "meridian-storage-core>=1.2.0,<2",
   "meridian-storage-semantics>=2.1.0,<3",
   "meridian-storage-query>=1.0.2,<2",
   "meridian-storage-projection>=1.0.2,<2",
