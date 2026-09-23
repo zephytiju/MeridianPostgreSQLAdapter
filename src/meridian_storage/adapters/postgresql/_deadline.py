@@ -12,7 +12,7 @@ from typing import Any, TypeVar, cast
 
 from meridian_storage.context import OperationContext, current_context
 from meridian_storage.errors import ErrorCode, MeridianTimeoutError
-from psycopg import Connection
+from psycopg import Connection, DatabaseError
 from psycopg.abc import PQGen
 
 T = TypeVar("T")
@@ -102,7 +102,18 @@ class DeadlineConnection(Connection[Any]):
         assert budget is not None
         try:
             return consume(gen, self.pgconn.socket, budget)
-        except BaseException:
+        except BaseException as error:
+            # A complete PostgreSQL error response (for example a uniqueness
+            # conflict) leaves libpq synchronized. Preserve it so a savepoint
+            # can roll back under the same budget. Deadline/transport failures
+            # still discard; they do not establish a completed SQL response.
+            if isinstance(error, DatabaseError) and error.sqlstate is not None:
+                try:
+                    budget.remaining()
+                except MeridianTimeoutError:
+                    pass
+                else:
+                    raise
             # Discard the transport without a blocking cancel or rollback.
             # A COMMIT already sent is ambiguous, never proof of rollback.
             with suppress(BaseException):

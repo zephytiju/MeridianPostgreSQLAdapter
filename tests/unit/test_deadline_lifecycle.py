@@ -386,3 +386,20 @@ def test_driver_wait_timeout_can_only_narrow_inherited_budget(clock, monkeypatch
     assert clock[0] == pytest.approx(100 + elapsed)
     assert budget.expires == 102  # a per-call timeout does not mutate the parent budget
     assert calls == ["finish"]
+
+
+def test_completed_sql_error_preserves_connection_for_budgeted_savepoint_rollback(clock):
+    from psycopg.errors import UniqueViolation
+
+    calls = []
+    fake = SimpleNamespace(
+        pgconn=SimpleNamespace(socket=123, finish=lambda: calls.append("finish"))
+    )
+
+    def conflict():
+        raise UniqueViolation("synthetic duplicate")
+        yield 1
+
+    with bounded_io(OperationBudget(2)), pytest.raises(UniqueViolation):
+        DeadlineConnection.wait(fake, conflict())
+    assert calls == []
