@@ -1,10 +1,10 @@
 {
   "formatVersion": "meridian.postgresql.compatibility.v1",
   "adapterId": "postgresql",
-  "packageVersion": "2.4.0",
+  "packageVersion": "2.5.0",
   "adapterContract": "1.0.0",
   "dependencies": {
-    "meridian-storage-core": "1.1.0",
+    "meridian-storage-core": "1.2.0",
     "meridian-storage-semantics": "2.1.0",
     "meridian-storage-query": "1.0.3",
     "meridian-storage-projection": "1.0.3"

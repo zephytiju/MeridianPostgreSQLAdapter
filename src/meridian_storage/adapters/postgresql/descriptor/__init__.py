@@ -109,7 +109,14 @@ DESCRIPTOR = AdapterDescriptor(
         OperationCapability(
             operation_contract="meridian.transaction",
             operation_versions=("1.0.0",),
-            guarantees=("atomic", "no-dirty-reads", "read-committed"),
+            guarantees=(
+                "atomic",
+                "no-dirty-reads",
+                "read-committed",
+                "inherited-operation-deadline",
+                "bounded-client-io",
+                "typed-commit-outcome",
+            ),
             limits={"maxOperations": 10_000},
             migration_behavior="external",
             health_probes=("authenticated", "readiness"),
